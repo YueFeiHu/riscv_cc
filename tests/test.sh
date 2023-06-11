@@ -6,11 +6,9 @@ assert() {
   input="$2"
 
   ./rvcc "$input" > $TEST_DIR/tmp.s || exit
-  # 编译rvcc产生的汇编文件
   $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o $TEST_DIR/tmp $TEST_DIR/tmp.s
   $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot $TEST_DIR/tmp
-  # $RISCV/bin/spike --isa=rv64gc $RISCV/riscv64-unknown-linux-gnu/bin/pk ./tmp
-  # 获取程序返回值，存入 实际值
+
   actual="$?"
   if [ "$actual" = "$expected" ]; then
     echo "$input => $actual"
@@ -21,7 +19,7 @@ assert() {
 
 }
 
-assert 0 0
-assert 42 42
+assert 6 1+2+3
+assert 1 1-1+1
 
 echo OK
