@@ -18,7 +18,8 @@ struct token{
 	const char *loc;
 	int len;
 };
+
 int get_token_val(const token_t *tok);
 bool equal(const token_t *tok, const char *str);
-token_t *tokenize(char *p);
+token_t *tokenize();
 #endif

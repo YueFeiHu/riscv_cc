@@ -1,24 +1,14 @@
 #include "token.h"
-#include <stdarg.h>
+#include "error.h"
 
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 
-static void error(const char *fmt, ...);
+char *current_line;
+
 static token_t *skip(const token_t *tok, const char *str);
 static token_t *new_token(TokenKind kind, const char *start, const char *end);
-
-void error(const char *fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	vfprintf(stderr, fmt, va);
-	fprintf(stderr, "\n");
-	va_end(va);
-	exit(1);
-}
 
 bool equal(const token_t *tok, const char *str)
 {
@@ -29,7 +19,7 @@ token_t *skip(const token_t *tok, const char *str)
 {
 	if (!equal(tok, str))
 	{
-		error("expect '%s'", str);
+		error_tok(tok, "expect '%s'", str);
 	}
 	return tok->next;
 }
@@ -38,7 +28,7 @@ int get_token_val(const token_t *tok)
 {
 	if (tok->kind != TK_NUM)
 	{
-		error("expect a number");
+		error_tok(tok, "expect a number");
 	}
 	return tok->val;
 }
@@ -52,8 +42,9 @@ token_t *new_token(TokenKind kind, const char *start, const char *end)
 	return tok;
 }
 
-token_t *tokenize(char *p)
+token_t *tokenize()
 {
+	char *p = current_line;
 	token_t tok = {};
 	token_t *cur = &tok;
 	long num;
@@ -82,7 +73,7 @@ token_t *tokenize(char *p)
 		}
 		else
 		{
-			error("invalid token: %c", *p);
+			error_at(p, "invalid token: %c", *p);
 		}
 	}
 	cur->next = new_token(TK_EOF, p, p);

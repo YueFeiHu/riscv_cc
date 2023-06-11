@@ -1,8 +1,10 @@
 #include "token.h"
-
+#include "error.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+extern char *current_line;
 
 int main(int argc, char **argv)
 {
@@ -16,7 +18,9 @@ int main(int argc, char **argv)
 	printf("	.global main\n");
 	printf("main:\n");
 	char *p = argv[1];
-	token_t *tok = tokenize(p);
+
+	current_line = p;
+	token_t *tok = tokenize();
 
 	while (tok)
 	{
