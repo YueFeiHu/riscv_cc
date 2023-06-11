@@ -1,3 +1,5 @@
+#include "token.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,24 +16,36 @@ int main(int argc, char **argv)
 	printf("	.global main\n");
 	printf("main:\n");
 	char *p = argv[1];
-	long num = strtol(p, &p, 10);
-	printf("	li a0, %ld\n", num);
-	while (*p)
+	token_t *tok = tokenize(p);
+
+	while (tok)
 	{
-		if (*p == '+')
+		if (tok->kind == TK_NUM)
 		{
-			p = p + 1;
-			printf("addi a0, a0, %ld\n", strtol(p, &p, 10));
-			continue;
+			printf("	li a0, %d\n", get_token_val(tok));
 		}
-		if (*p == '-')
+		else if (tok->kind == TK_PUNCT)
 		{
-			p = p + 1;
-			printf("addi a0, a0, -%ld\n", strtol(p, &p, 10));
-			continue;
+			if (equal(tok, "+"))
+			{
+				tok = tok->next;
+				printf("	addi a0, a0, %d\n", get_token_val(tok));
+			}
+			else if (equal(tok, "-"))
+			{
+				tok = tok->next;
+				printf("	addi a0, a0, -%d\n", get_token_val(tok));
+			}
+			else
+			{
+				fprintf(stderr, "expect + or -\n");
+			}
 		}
-		fprintf(stderr, "unexpected character: '%c'\n", *p);
-		return 1;
+		else if (tok->kind == TK_EOF)
+		{
+			break;
+		}
+		tok = tok->next;
 	}
 	printf("	ret\n");
 	return 0;
