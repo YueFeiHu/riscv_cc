@@ -7,6 +7,7 @@ typedef enum{
   AST_NODE_MUL,
   AST_NODE_DIV,
   AST_NODE_NUM,
+  AST_NODE_NEG,
 }AST_node_kind;
 
 typedef struct AST_node AST_node_t;
@@ -22,4 +23,5 @@ struct token;
 
 AST_node_t *expr(struct token **token_list, struct token *tok);
 void dump_ast(AST_node_t *root,int indent);
+
 #endif

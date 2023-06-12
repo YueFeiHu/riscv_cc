@@ -2,13 +2,16 @@
 #include "token.h"
 #include "error.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static AST_node_t *new_AST_node(AST_node_kind kind);
 static AST_node_t *new_binary(AST_node_kind kind, AST_node_t *left, AST_node_t *right);
+static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left);
 static AST_node_t *new_num_node(int val);
 
 AST_node_t *expr(token_t **token_list, token_t *tok);
 static AST_node_t *mul(token_t **token_list, token_t *tok);
+static AST_node_t *unary(token_t **token_list, token_t *tok);
 static AST_node_t *primary(token_t **token_list, token_t *tok);
 
 AST_node_t *new_AST_node(AST_node_kind kind)
@@ -30,6 +33,13 @@ AST_node_t *new_num_node(int val)
 {
   AST_node_t *node = new_AST_node(AST_NODE_NUM);
   node->val = val;
+  return node;
+}
+
+static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left)
+{
+  AST_node_t *node = new_AST_node(kind);
+  node->left = left;
   return node;
 }
 
@@ -57,24 +67,37 @@ AST_node_t *expr(token_t **token_list, token_t *tok)
 
 AST_node_t *mul(token_t **token_list, token_t *tok)
 {
-  AST_node_t *node = primary(&tok, tok);
+  AST_node_t *node = unary(&tok, tok);
   while (true)
   {
     if (equal(tok, "*"))
     {
-      node = new_binary(AST_NODE_MUL, node, primary(&tok, tok->next));
+      node = new_binary(AST_NODE_MUL, node, unary(&tok, tok->next));
       continue; 
     }
 
     if (equal(tok, "/"))
     {
-      node = new_binary(AST_NODE_DIV, node, primary(&tok, tok->next));
+      node = new_binary(AST_NODE_DIV, node, unary(&tok, tok->next));
       continue; 
     }
     *token_list = tok;
     return node;
   }
   return NULL;
+}
+// unary = ("+" | "-") unary | primary
+static AST_node_t *unary(token_t **token_list, token_t *tok)
+{
+  if (equal(tok, "+"))
+  {
+    return unary(token_list, tok->next);
+  }
+  if (equal(tok, "-"))
+  {
+    return new_unary(AST_NODE_NEG, unary(token_list, tok->next));
+  }
+  return primary(token_list, tok);   
 }
 
 AST_node_t *primary(token_t **token_list, token_t *tok)
