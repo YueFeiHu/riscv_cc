@@ -19,7 +19,7 @@ assert() {
 
 }
 
-assert 6 '1+2++ 3'
+assert 17 '1 - 8  / (2 * 2) + 3 * 6'
 assert 1 '1   -  1  + 1'
 
 echo OK

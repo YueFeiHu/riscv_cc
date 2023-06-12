@@ -1,5 +1,7 @@
 #include "token.h"
 #include "error.h"
+#include "parser.h"
+#include "code_gen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,36 +23,14 @@ int main(int argc, char **argv)
 
 	current_line = p;
 	token_t *tok = tokenize();
-
-	while (tok)
+	// dump_token(tok);
+	AST_node_t *root = expr(&tok, tok);
+	// dump_ast(root, 0);
+	if (tok->kind != TK_EOF)
 	{
-		if (tok->kind == TK_NUM)
-		{
-			printf("	li a0, %d\n", get_token_val(tok));
-		}
-		else if (tok->kind == TK_PUNCT)
-		{
-			if (equal(tok, "+"))
-			{
-				tok = tok->next;
-				printf("	addi a0, a0, %d\n", get_token_val(tok));
-			}
-			else if (equal(tok, "-"))
-			{
-				tok = tok->next;
-				printf("	addi a0, a0, -%d\n", get_token_val(tok));
-			}
-			else
-			{
-				fprintf(stderr, "expect + or -\n");
-			}
-		}
-		else if (tok->kind == TK_EOF)
-		{
-			break;
-		}
-		tok = tok->next;
+		error_tok(tok, "extra token");
 	}
+	gen_expr(root);
 	printf("	ret\n");
 	return 0;
 }
