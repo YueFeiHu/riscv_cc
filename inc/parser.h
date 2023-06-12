@@ -8,7 +8,11 @@ typedef enum{
   AST_NODE_DIV,
   AST_NODE_NUM,
   AST_NODE_NEG,
-}AST_node_kind;
+  AST_NODE_NE,
+  AST_NODE_LT,
+  AST_NODE_LE,
+  AST_NODE_EQ,
+} AST_node_kind;
 
 typedef struct AST_node AST_node_t;
 

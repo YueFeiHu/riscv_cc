@@ -52,6 +52,25 @@ void gen_expr(AST_node_t *root)
   case AST_NODE_DIV:
     printf("  div a0, a0, a1\n");
     break;
+  case AST_NODE_EQ:
+  case AST_NODE_NE:
+    printf("  xor a0, a0, a1\n");
+    if (root->kind == AST_NODE_EQ)
+    {
+      printf("  seqz a0, a0\n");
+    }
+    else
+    {
+      printf("  snez a0, a0\n");
+    }
+    return;
+  case AST_NODE_LT:
+    printf("  slt a0, a0, a1\n");
+    return;
+  case AST_NODE_LE:
+    printf("  slt a0, a1, a0\n");
+    printf("  xori a0, a0, 1\n");
+    return;
   default:
     break;
   }

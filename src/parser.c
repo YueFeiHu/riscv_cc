@@ -9,11 +9,6 @@ static AST_node_t *new_binary(AST_node_kind kind, AST_node_t *left, AST_node_t *
 static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left);
 static AST_node_t *new_num_node(int val);
 
-AST_node_t *expr(token_t **token_list, token_t *tok);
-static AST_node_t *mul(token_t **token_list, token_t *tok);
-static AST_node_t *unary(token_t **token_list, token_t *tok);
-static AST_node_t *primary(token_t **token_list, token_t *tok);
-
 AST_node_t *new_AST_node(AST_node_kind kind)
 {
   AST_node_t *node = calloc(1, sizeof(AST_node_t));
@@ -43,7 +38,83 @@ static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left)
   return node;
 }
 
+AST_node_t *expr(token_t **token_list, token_t *tok);
+static AST_node_t *equality(token_t **token_list, token_t *tok);
+static AST_node_t *relational(token_t **token_list, token_t *tok);
+static AST_node_t *add(token_t **token_list, token_t *tok);
+static AST_node_t *mul(token_t **token_list, token_t *tok);
+static AST_node_t *unary(token_t **token_list, token_t *tok);
+static AST_node_t *primary(token_t **token_list, token_t *tok);
+
+// expr = equality
+// equality = relational ("==" relational | "!=" relational)*
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+// add = mul ("+" mul | "-" mul)*
+// mul = unary ("*" unary | "/" unary)*
+// unary = ("+" | "-") unary | primary
+// primary = "(" expr ")" | num
 AST_node_t *expr(token_t **token_list, token_t *tok)
+{
+  return equality(token_list, tok);
+}
+
+AST_node_t *equality(token_t **token_list, token_t *tok)
+{
+  AST_node_t *node = relational(&tok, tok);
+  while (true)
+  {
+    if (equal(tok, "=="))
+    {
+      node = new_binary(AST_NODE_EQ, node, relational(&tok, tok->next));
+      continue;
+    }
+    if (equal(tok, "!="))
+    {
+      node = new_binary(AST_NODE_NE, node, relational(&tok, tok->next));
+      continue;
+    }
+
+    *token_list = tok;
+    return node;
+  }
+  return NULL;
+}
+
+AST_node_t *relational(token_t **token_list, token_t *tok)
+{
+  AST_node_t *node = add(&tok, tok);
+  while (true)
+  {
+    if (equal(tok, "<"))
+    {
+      node = new_binary(AST_NODE_LT, node, add(&tok, tok->next));
+      continue;
+    }
+
+    if (equal(tok, "<="))
+    {
+      node = new_binary(AST_NODE_LE, node, add(&tok, tok->next));
+      continue;
+    }
+
+    if (equal(tok, ">"))
+    {
+      node = new_binary(AST_NODE_LT, add(&tok, tok->next), node);
+      continue;
+    }
+
+    if (equal(tok, ">="))
+    {
+      node = new_binary(AST_NODE_LE, add(&tok, tok->next), node);
+      continue;
+    }
+    *token_list = tok;
+    return node;
+  }
+  return NULL;
+}
+
+AST_node_t *add(token_t **token_list, token_t *tok)
 {
   AST_node_t *node = mul(&tok, tok);
   while (true)
