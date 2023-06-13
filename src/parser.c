@@ -37,7 +37,8 @@ static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left)
   node->left = left;
   return node;
 }
-
+static AST_node_t *stmt(token_t **token_list, token_t *tok);
+static AST_node_t *expr_stmt(token_t **token_list, token_t *tok);
 static AST_node_t *expr(token_t **token_list, token_t *tok);
 static AST_node_t *equality(token_t **token_list, token_t *tok);
 static AST_node_t *relational(token_t **token_list, token_t *tok);
@@ -46,6 +47,9 @@ static AST_node_t *mul(token_t **token_list, token_t *tok);
 static AST_node_t *unary(token_t **token_list, token_t *tok);
 static AST_node_t *primary(token_t **token_list, token_t *tok);
 
+// program = stmt*
+// stmt = exprStmt
+// exprStmt = expr ";"
 // expr = equality
 // equality = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
@@ -53,6 +57,19 @@ static AST_node_t *primary(token_t **token_list, token_t *tok);
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-") unary | primary
 // primary = "(" expr ")" | num
+
+AST_node_t *stmt(token_t **token_list, token_t *tok)
+{
+  return expr_stmt(token_list, tok);
+}
+
+AST_node_t *expr_stmt(token_t **token_list, token_t *tok)
+{
+  AST_node_t *node = new_unary(AST_NODE_EPXR_STMT, expr(&tok, tok));
+  *token_list = skip(tok, ";");
+  return node;
+}
+
 AST_node_t *expr(token_t **token_list, token_t *tok)
 {
   return equality(token_list, tok);
@@ -189,6 +206,20 @@ AST_node_t *primary(token_t **token_list, token_t *tok)
   return NULL;
 }
 
+AST_node_t *parse(token_t *tok)
+{
+  AST_node_t head;
+  AST_node_t *cur = &head;
+
+	// dump_ast(root, 0);
+	while (tok->kind != TK_EOF)
+	{
+    cur->stmt_list_node = stmt(&tok, tok);
+    cur = cur->stmt_list_node;
+	}
+  return head.stmt_list_node;
+}
+
 void dump_ast(AST_node_t *root, int depth){
   if (root == NULL) {
     return;
@@ -224,13 +255,4 @@ void dump_ast(AST_node_t *root, int depth){
   }
 }
 
-AST_node_t *parse(token_t *tok)
-{
-  AST_node_t *root = expr(&tok, tok);
-	// dump_ast(root, 0);
-	if (tok->kind != TK_EOF)
-	{
-		error_tok(tok, "extra token");
-	}
-  return root;
-}
+

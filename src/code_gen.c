@@ -75,11 +75,24 @@ void gen_expr(AST_node_t *root)
     break;
   }
 }
+
+void gen_stmt(AST_node_t *root)
+{
+  if (root->kind == AST_NODE_EPXR_STMT)
+  {
+    gen_expr(root->left);
+  }
+}
+
 void code_gen(AST_node_t *root)
 {
   printf("	.text\n");
 	printf("	.global main\n");
 	printf("main:\n");
-  gen_expr(root);
+  while(root)
+  {
+    gen_stmt(root);
+    root = root->stmt_list_node;
+  }
 	printf("	ret\n");
 }

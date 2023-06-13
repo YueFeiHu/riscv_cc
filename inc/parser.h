@@ -12,6 +12,7 @@ typedef enum{
   AST_NODE_LT,
   AST_NODE_LE,
   AST_NODE_EQ,
+  AST_NODE_EPXR_STMT,
 } AST_node_kind;
 
 typedef struct AST_node AST_node_t;
@@ -20,6 +21,7 @@ struct AST_node{
   AST_node_kind kind;
   AST_node_t *left;
   AST_node_t *right;
+  AST_node_t *stmt_list_node;
   int val;
 };
 
