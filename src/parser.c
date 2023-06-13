@@ -38,7 +38,7 @@ static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left)
   return node;
 }
 
-AST_node_t *expr(token_t **token_list, token_t *tok);
+static AST_node_t *expr(token_t **token_list, token_t *tok);
 static AST_node_t *equality(token_t **token_list, token_t *tok);
 static AST_node_t *relational(token_t **token_list, token_t *tok);
 static AST_node_t *add(token_t **token_list, token_t *tok);
@@ -224,3 +224,13 @@ void dump_ast(AST_node_t *root, int depth){
   }
 }
 
+AST_node_t *parse(token_t *tok)
+{
+  AST_node_t *root = expr(&tok, tok);
+	// dump_ast(root, 0);
+	if (tok->kind != TK_EOF)
+	{
+		error_tok(tok, "extra token");
+	}
+  return root;
+}

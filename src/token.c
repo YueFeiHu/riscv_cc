@@ -56,9 +56,9 @@ token_t *new_token(TokenKind kind, const char *start, const char *end)
 	return tok;
 }
 
-token_t *tokenize()
+token_t *tokenize(char *p)
 {
-	char *p = current_line;
+	current_line = p;
 	token_t tok = {};
 	token_t *cur = &tok;
 	long num;

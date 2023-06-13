@@ -3,6 +3,6 @@
 
 struct AST_node;
 
-void gen_expr(struct AST_node *root);
+void code_gen(struct AST_node *root);
 
 #endif

@@ -25,7 +25,7 @@ struct AST_node{
 
 struct token;
 
-AST_node_t *expr(struct token **token_list, struct token *tok);
 void dump_ast(AST_node_t *root,int indent);
+AST_node_t *parse(struct token *tok);
 
 #endif

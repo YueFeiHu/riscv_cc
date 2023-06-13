@@ -75,3 +75,11 @@ void gen_expr(AST_node_t *root)
     break;
   }
 }
+void code_gen(AST_node_t *root)
+{
+  printf("	.text\n");
+	printf("	.global main\n");
+	printf("main:\n");
+  gen_expr(root);
+	printf("	ret\n");
+}
