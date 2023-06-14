@@ -1,6 +1,8 @@
 #include "parser.h"
 #include "token.h"
 #include "error.h"
+#include "token_stream.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -37,15 +39,16 @@ static AST_node_t *new_unary(AST_node_kind kind, AST_node_t *left)
   node->left = left;
   return node;
 }
-static AST_node_t *stmt(token_t **token_list, token_t *tok);
-static AST_node_t *expr_stmt(token_t **token_list, token_t *tok);
-static AST_node_t *expr(token_t **token_list, token_t *tok);
-static AST_node_t *equality(token_t **token_list, token_t *tok);
-static AST_node_t *relational(token_t **token_list, token_t *tok);
-static AST_node_t *add(token_t **token_list, token_t *tok);
-static AST_node_t *mul(token_t **token_list, token_t *tok);
-static AST_node_t *unary(token_t **token_list, token_t *tok);
-static AST_node_t *primary(token_t **token_list, token_t *tok);
+
+static AST_node_t *stmt(token_stream_t *ts);
+static AST_node_t *expr_stmt(token_stream_t *ts);
+static AST_node_t *expr(token_stream_t *ts);
+static AST_node_t *equality(token_stream_t *ts);
+static AST_node_t *relational(token_stream_t *ts);
+static AST_node_t *add(token_stream_t *ts);
+static AST_node_t *mul(token_stream_t *ts);
+static AST_node_t *unary(token_stream_t *ts);
+static AST_node_t *primary(token_stream_t *ts);
 
 // program = stmt*
 // stmt = exprStmt
@@ -58,163 +61,191 @@ static AST_node_t *primary(token_t **token_list, token_t *tok);
 // unary = ("+" | "-") unary | primary
 // primary = "(" expr ")" | num
 
-AST_node_t *stmt(token_t **token_list, token_t *tok)
+AST_node_t *stmt(token_stream_t *ts)
 {
-  return expr_stmt(token_list, tok);
+  return expr_stmt(ts);
 }
 
-AST_node_t *expr_stmt(token_t **token_list, token_t *tok)
+AST_node_t *expr_stmt(token_stream_t *ts)
 {
-  AST_node_t *node = new_unary(AST_NODE_EPXR_STMT, expr(&tok, tok));
-  *token_list = skip(tok, ";");
+  token_t *cur_tok;
+  AST_node_t *node = new_unary(AST_NODE_EPXR_STMT, expr(ts));
+  
+  cur_tok = token_stream_get(ts);
+  if (equal(cur_tok, ";"))
+  {
+    token_stream_advance(ts);
+  }
   return node;
 }
 
-AST_node_t *expr(token_t **token_list, token_t *tok)
+AST_node_t *expr(token_stream_t *ts)
 {
-  return equality(token_list, tok);
+  return equality(ts);
 }
 
-AST_node_t *equality(token_t **token_list, token_t *tok)
+AST_node_t *equality(token_stream_t *ts)
 {
-  AST_node_t *node = relational(&tok, tok);
+  AST_node_t *node = relational(ts);
+  token_t *tok;
   while (true)
   {
+    tok = token_stream_get(ts);
     if (equal(tok, "=="))
     {
-      node = new_binary(AST_NODE_EQ, node, relational(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_EQ, node, relational(ts));
       continue;
     }
     if (equal(tok, "!="))
     {
-      node = new_binary(AST_NODE_NE, node, relational(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_NE, node, relational(ts));
       continue;
     }
-
-    *token_list = tok;
     return node;
   }
   return NULL;
 }
 
-AST_node_t *relational(token_t **token_list, token_t *tok)
+AST_node_t *relational(token_stream_t *ts)
 {
-  AST_node_t *node = add(&tok, tok);
+  AST_node_t *node = add(ts);
+  token_t *tok;
   while (true)
   {
+    tok = token_stream_get(ts);
     if (equal(tok, "<"))
     {
-      node = new_binary(AST_NODE_LT, node, add(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_LT, node, add(ts));
       continue;
     }
 
     if (equal(tok, "<="))
     {
-      node = new_binary(AST_NODE_LE, node, add(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_LT, node, add(ts));
       continue;
     }
 
     if (equal(tok, ">"))
     {
-      node = new_binary(AST_NODE_LT, add(&tok, tok->next), node);
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_LT, add(ts), node);
       continue;
     }
 
     if (equal(tok, ">="))
     {
-      node = new_binary(AST_NODE_LE, add(&tok, tok->next), node);
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_LE, add(ts), node);
       continue;
     }
-    *token_list = tok;
     return node;
   }
   return NULL;
 }
 
-AST_node_t *add(token_t **token_list, token_t *tok)
+AST_node_t *add(token_stream_t *ts)
 {
-  AST_node_t *node = mul(&tok, tok);
+  AST_node_t *node = mul(ts);
+  token_t *tok;
   while (true)
   {
+    tok = token_stream_get(ts);
     if (equal(tok, "+"))
     {
-      node = new_binary(AST_NODE_ADD, node, mul(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_ADD, node, mul(ts));
       continue; 
     }
 
     if (equal(tok, "-"))
     {
-      node = new_binary(AST_NODE_SUB, node, mul(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_SUB, node, mul(ts));
       continue; 
     }
-    *token_list = tok;
     return node;
   }
   return NULL;
 }
 
-AST_node_t *mul(token_t **token_list, token_t *tok)
+AST_node_t *mul(token_stream_t *ts)
 {
-  AST_node_t *node = unary(&tok, tok);
+  AST_node_t *node = unary(ts);
+  token_t *tok;
   while (true)
   {
+    tok = token_stream_get(ts);
     if (equal(tok, "*"))
     {
-      node = new_binary(AST_NODE_MUL, node, unary(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_MUL, node, unary(ts));
       continue; 
     }
 
     if (equal(tok, "/"))
     {
-      node = new_binary(AST_NODE_DIV, node, unary(&tok, tok->next));
+      token_stream_advance(ts);
+      node = new_binary(AST_NODE_DIV, node, unary(ts));
       continue; 
     }
-    *token_list = tok;
     return node;
   }
   return NULL;
 }
 // unary = ("+" | "-") unary | primary
-static AST_node_t *unary(token_t **token_list, token_t *tok)
+static AST_node_t *unary(token_stream_t *ts)
 {
+  token_t *tok = token_stream_get(ts);
   if (equal(tok, "+"))
   {
-    return unary(token_list, tok->next);
+    token_stream_advance(ts);
+    return unary(ts);
   }
   if (equal(tok, "-"))
   {
-    return new_unary(AST_NODE_NEG, unary(token_list, tok->next));
+    token_stream_advance(ts);
+    return new_unary(AST_NODE_NEG, unary(ts));
   }
-  return primary(token_list, tok);   
+  return primary(ts);   
 }
 
-AST_node_t *primary(token_t **token_list, token_t *tok)
+AST_node_t *primary(token_stream_t *ts)
 {
+  token_t *tok = token_stream_get(ts);
   if (equal(tok, "("))
   {
-    AST_node_t *tree_node = expr(&tok, tok->next);
-    *token_list = skip(tok, ")");
+    token_stream_advance(ts);
+    AST_node_t *tree_node = expr(ts);
+    tok = token_stream_get(ts);
+    if (equal(tok, ")"))
+    {
+      token_stream_advance(ts);
+    }
     return tree_node;
   }
   if (tok->kind == TK_NUM)
   {
     AST_node_t *num_node = new_num_node(tok->val);
-    *token_list = tok->next;
+    token_stream_advance(ts);
     return num_node;
   }
   error_tok(tok, "expect an expression");
   return NULL;
 }
 
-AST_node_t *parse(token_t *tok)
+AST_node_t *parse(token_stream_t *ts)
 {
   AST_node_t head;
   AST_node_t *cur = &head;
 
 	// dump_ast(root, 0);
-	while (tok->kind != TK_EOF)
+	while (ts->token_count != 0 && ts->tokens->kind != TK_EOF)
 	{
-    cur->stmt_list_node = stmt(&tok, tok);
+    cur->stmt_list_node = stmt(ts);
     cur = cur->stmt_list_node;
 	}
   return head.stmt_list_node;

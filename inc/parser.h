@@ -25,9 +25,9 @@ struct AST_node{
   int val;
 };
 
-struct token;
+struct token_stream;
 
 void dump_ast(AST_node_t *root,int indent);
-AST_node_t *parse(struct token *tok);
+AST_node_t *parse(struct token_stream *ts);
 
 #endif

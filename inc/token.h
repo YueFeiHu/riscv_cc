@@ -1,6 +1,7 @@
 #ifndef __TOKEN_H__
 #define __TOKEN_H__
 
+
 #include <stdbool.h>
 
 typedef enum{
@@ -19,10 +20,13 @@ struct token{
 	int len;
 };
 
+struct token_stream ;
+
 token_t *skip(const token_t *tok, const char *str);
 int get_token_val(const token_t *tok);
 bool equal(const token_t *tok, const char *str);
-token_t *tokenize(char *p);
+
+struct token_stream *tokenize(char *p);
 void dump_token(token_t *head);
 
 #endif

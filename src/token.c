@@ -1,6 +1,6 @@
 #include "token.h"
 #include "error.h"
-
+#include "token_stream.h"
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -8,8 +8,9 @@
 
 char *current_line;
 
-
 static token_t *new_token(TokenKind kind, const char *start, const char *end);
+static bool start_with(const char *p, const char *str);
+static int read_punct(const char *str);
 
 bool start_with(const char *p, const char *str)
 {
@@ -56,11 +57,12 @@ token_t *new_token(TokenKind kind, const char *start, const char *end)
 	return tok;
 }
 
-token_t *tokenize(char *p)
+token_stream_t *tokenize(char *p)
 {
 	current_line = p;
-	token_t tok = {};
-	token_t *cur = &tok;
+	token_stream_t *ts = token_stream_create();
+
+	token_t *cur;
 	long num;
 
 	while (*p)
@@ -75,24 +77,25 @@ token_t *tokenize(char *p)
 		{
 			const char *start = p;
 			num = strtol(p, &p, 10);
-			cur->next = new_token(TK_NUM, start, p);
-			cur = cur->next;
+			cur = new_token(TK_NUM, start, p);
 			cur->val = num;
+			token_stream_add(ts, cur);
 			continue;
 		}
 
 		int punct_len = read_punct(p);
 		if (punct_len)
 		{
-			cur->next = new_token(TK_PUNCT, p, p + punct_len);
-			cur = cur->next;
+			cur = new_token(TK_PUNCT, p, p + punct_len);
+			token_stream_add(ts, cur);
 			p += punct_len;
 			continue;
 		}
 		error_at(p, "invalid token: %c", *p);
 	}
-	cur->next = new_token(TK_EOF, p, p);
-	return tok.next;
+	cur = new_token(TK_EOF, p, p);
+	token_stream_add(ts, cur);
+	return ts;
 }
 
 void dump_token(token_t *head) {
