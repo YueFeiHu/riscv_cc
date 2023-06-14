@@ -25,6 +25,18 @@ int read_punct(const char *str)
 	return ispunct(*str) ? 1 : 0;
 }
 
+
+
+bool is_ident1(char c)
+{
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+bool is_ident2(char c)
+{
+	return is_ident1(c) || ('0' <= c && c <= '9');
+}
+
 bool equal(const token_t *tok, const char *str)
 {
 	return memcmp(tok->loc, str, tok->len) == 0 && str[tok->len] == '\0';
@@ -82,7 +94,17 @@ token_stream_t *tokenize(char *p)
 			token_stream_add(ts, cur);
 			continue;
 		}
-
+		if (is_ident1(*p))
+		{
+			char *start = p;
+			do
+			{
+				++p;
+			}while(is_ident2(*p));
+			cur = new_token(TK_IDENT, start, p);
+			token_stream_add(ts, cur);
+			continue;
+		}
 		int punct_len = read_punct(p);
 		if (punct_len)
 		{
@@ -98,22 +120,3 @@ token_stream_t *tokenize(char *p)
 	return ts;
 }
 
-void dump_token(token_t *head) {
-    while (head != NULL) {
-        switch (head->kind) {
-            case TK_PUNCT:
-                printf("PUNCT: %.*s\n", head->len, head->loc);
-                break;
-            case TK_NUM:
-                printf("NUM: %d\n", head->val);
-                break;
-            case TK_EOF:
-                printf("EOF\n");
-                break;
-            default:
-                printf("Unknown token kind.\n");
-                break;
-        }
-        head = head->next;
-    }
-}

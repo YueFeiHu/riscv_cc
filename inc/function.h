@@ -1,0 +1,16 @@
+#ifndef __FUCNTION_H__
+#define __FUNCTION_H__
+
+struct AST_node;
+struct var_stream;
+
+typedef struct function
+{
+    struct AST_node *func_body;
+    struct var_stream *local_vars;
+    int stack_size;
+}function_t;
+
+function_t *function_create(struct AST_node *func_body, struct var_stream *local_vars);
+
+#endif

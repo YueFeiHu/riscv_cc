@@ -2,9 +2,9 @@
 #include "parser.h"
 #include "code_gen.h"
 #include "token_stream.h"
-
 #include <stdio.h>
 
+struct function;
 int main(int argc, char **argv)
 {
 	if (argc != 2)
@@ -15,8 +15,8 @@ int main(int argc, char **argv)
 
 	token_stream_t *ts = tokenize(argv[1]);
 	// token_stream_dump(ts);
-	AST_node_t *root = parse(ts);
-	code_gen(root);
+	struct function *func = parse(ts);
+	code_gen(func);
 
 	return 0;
 }

@@ -24,4 +24,4 @@ ${BIN_DIR}/%.o : ${SRC_DIR}/%.c
 test : rvcc
 	bash ${TESTS_DIR}/test.sh
 clean:
-	rm -rf rvcc ${BIN_DIR}/*.o ${TESTS_DIR}/tmp*
+	rm -rf rvcc ${BIN_DIR}/*.o ${TESTS_DIR}/tmp* ./core

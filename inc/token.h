@@ -7,6 +7,7 @@
 typedef enum{
 	TK_PUNCT,
 	TK_NUM,
+	TK_IDENT,
 	TK_EOF
 }TokenKind;
 
@@ -27,6 +28,5 @@ int get_token_val(const token_t *tok);
 bool equal(const token_t *tok, const char *str);
 
 struct token_stream *tokenize(char *p);
-void dump_token(token_t *head);
 
 #endif

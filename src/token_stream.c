@@ -51,6 +51,9 @@ void token_stream_dump(token_stream_t *ts)
     token_t *head = ts->tokens;
     while (head != NULL) {
         switch (head->kind) {
+            case TK_IDENT:
+                printf("IDENT: %.*s\n", head->len, head->loc);
+                break;
             case TK_PUNCT:
                 printf("PUNCT: %.*s\n", head->len, head->loc);
                 break;

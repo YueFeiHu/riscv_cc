@@ -2,7 +2,7 @@
 #define __CODE_GEN_H__
 
 struct AST_node;
-
-void code_gen(struct AST_node *root);
+struct function;
+void code_gen(struct function *func);
 
 #endif
