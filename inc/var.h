@@ -6,6 +6,7 @@
 typedef struct var
 {
     char *name;
+    int name_len;
     int offset;
     struct var *next;
 }var_t;

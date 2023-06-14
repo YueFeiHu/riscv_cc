@@ -37,7 +37,7 @@ static void assign_var_offset(function_t *prog)
 		offset += 8;
 		var->offset = -offset;
 	}
-	prog->stack_size = align(offset, 8);
+	prog->stack_size = align(offset, 16);
 }
 
 static void gen_var_addr(AST_node_t *node)

@@ -256,7 +256,7 @@ AST_node_t *primary(token_stream_t *ts)
 
 	if (tok->kind == TK_IDENT)
 	{
-		var_t *var = var_stream_find(vs, var);
+		var_t *var = var_stream_find(vs, tok->loc);
 		if (!var)
 		{
 			var = var_create(tok->loc, tok->len, 0);
