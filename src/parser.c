@@ -125,7 +125,7 @@ AST_node_t *relational(token_stream_t *ts)
     if (equal(tok, "<="))
     {
       token_stream_advance(ts);
-      node = new_binary(AST_NODE_LT, node, add(ts));
+      node = new_binary(AST_NODE_LE, node, add(ts));
       continue;
     }
 

@@ -14,9 +14,9 @@ int main(int argc, char **argv)
 	}
 
 	token_stream_t *ts = tokenize(argv[1]);
-	token_stream_dump(ts);
+	// token_stream_dump(ts);
 	AST_node_t *root = parse(ts);
-	//code_gen(root);
+	code_gen(root);
 
 	return 0;
 }
