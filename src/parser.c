@@ -50,8 +50,10 @@ AST_node_t *new_var_node(var_t *var)
 	node->var = var;
 	return node;
 }
-// program = stmt*
-// stmt = "return" expr ";" | exprStmt
+
+// program = "{" compoundStmt
+// compoundStmt = stmt* "}"
+// stmt = "return" expr ";" | "{" compoundStmt | exprStmt
 // exprStmt = expr ";"
 // expr = assign
 // assign = equality ("=" assign)?
@@ -60,7 +62,9 @@ AST_node_t *new_var_node(var_t *var)
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-") unary | primary
-// primary = "(" expr ")" | num | ident
+// primary = "(" expr ")" | ident | num
+
+static AST_node_t *compound_stmt(token_stream_t *ts);
 static AST_node_t *stmt(token_stream_t *ts);
 static AST_node_t *expr_stmt(token_stream_t *ts);
 static AST_node_t *expr(token_stream_t *ts);
@@ -72,14 +76,33 @@ static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 
-// // stmt = "return" expr ";" | exprStmt
+// compoundStmt = stmt* "}"
+static AST_node_t *compound_stmt(token_stream_t *ts)
+{
+	AST_node_t head;
+	AST_node_t *cur = &head;
+	token_t *tok = token_stream_get(ts);
+	while (!equal(tok, "}"))
+	{
+		cur->stmt_list_node = stmt(ts);
+		cur = cur->stmt_list_node;
+		tok = token_stream_get(ts);
+	}
+	token_stream_advance(ts);
+	AST_node_t *node = new_AST_node(AST_NODE_BLOCK);
+	node->block_body = head.stmt_list_node;
+	return node;
+}
+
+// stmt = "return" expr ";" | "{" compoundStmt | exprStmt
 AST_node_t *stmt(token_stream_t *ts)
 {
+	AST_node_t *node;
 	token_t *tok = token_stream_get(ts);
 	if (equal(tok, "return"))
 	{
 		token_stream_advance(ts);
-		AST_node_t *node = new_unary(AST_NODE_RETURN, expr(ts));
+		node = new_unary(AST_NODE_RETURN, expr(ts));
 		tok = token_stream_get(ts);
 		if (equal(tok, ";"))
 		{
@@ -91,18 +114,27 @@ AST_node_t *stmt(token_stream_t *ts)
 		}
 		return node;
 	}
+	else if (equal(tok, "{"))
+	{
+		token_stream_advance(ts);
+		return compound_stmt(ts);
+	}
 	return expr_stmt(ts);
 }
 
 AST_node_t *expr_stmt(token_stream_t *ts)
 {
-	token_t *cur_tok;
+	token_t *tok;
 	AST_node_t *node = new_unary(AST_NODE_EPXR_STMT, expr(ts));
 
-	cur_tok = token_stream_get(ts);
-	if (equal(cur_tok, ";"))
+	tok = token_stream_get(ts);
+	if (equal(tok, ";"))
 	{
 		token_stream_advance(ts);
+	}
+	else
+	{
+		error_tok(tok, "expect ;");
 	}
 	return node;
 }
@@ -293,21 +325,21 @@ AST_node_t *primary(token_stream_t *ts)
 	return NULL;
 }
 
+// program = "{" compoundStmt
 function_t *parse(token_stream_t *ts)
 {
-	AST_node_t head;
-	function_t *func;
-	AST_node_t *cur = &head;
 	vs = var_stream_create();
 	// dump_ast(root, 0);
-	while (ts->token_count != 0 && ts->tokens->kind != TK_EOF)
+	token_t *tok = token_stream_get(ts);
+	if (equal(tok, "{"))
 	{
-		cur->stmt_list_node = stmt(ts);
-		cur = cur->stmt_list_node;
-		cur->stmt_list_node = NULL;
+		token_stream_advance(ts);
 	}
-	func = function_create(head.stmt_list_node, vs);
-	return func;
+	else
+	{
+		error_tok(tok, "expect {");
+	}
+	return function_create(compound_stmt(ts), vs);
 }
 
 void dump_ast(AST_node_t *root, int depth)

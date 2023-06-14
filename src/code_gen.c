@@ -121,6 +121,7 @@ static void gen_expr(AST_node_t *root)
 
 static void gen_stmt(AST_node_t *root)
 {
+	AST_node_t *cur_node;
 	switch (root->kind)
 	{
 	case AST_NODE_EPXR_STMT:
@@ -129,6 +130,14 @@ static void gen_stmt(AST_node_t *root)
 	case AST_NODE_RETURN:
 		gen_expr(root->left);
 		printf("	j .L.return\n");
+		return;
+	case AST_NODE_BLOCK:
+		cur_node = root->block_body;
+		while (cur_node)
+		{
+			gen_stmt(cur_node);
+			cur_node = cur_node->stmt_list_node;
+		}
 		return;
 	default:
 		break;
