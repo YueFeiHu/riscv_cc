@@ -50,9 +50,8 @@ AST_node_t *new_var_node(var_t *var)
 	node->var = var;
 	return node;
 }
-
 // program = stmt*
-// stmt = exprStmt
+// stmt = "return" expr ";" | exprStmt
 // exprStmt = expr ";"
 // expr = assign
 // assign = equality ("=" assign)?
@@ -61,7 +60,7 @@ AST_node_t *new_var_node(var_t *var)
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-") unary | primary
-// primary = "(" expr ")" | num
+// primary = "(" expr ")" | num | ident
 static AST_node_t *stmt(token_stream_t *ts);
 static AST_node_t *expr_stmt(token_stream_t *ts);
 static AST_node_t *expr(token_stream_t *ts);
@@ -73,8 +72,25 @@ static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 
+// // stmt = "return" expr ";" | exprStmt
 AST_node_t *stmt(token_stream_t *ts)
 {
+	token_t *tok = token_stream_get(ts);
+	if (equal(tok, "return"))
+	{
+		token_stream_advance(ts);
+		AST_node_t *node = new_unary(AST_NODE_RETURN, expr(ts));
+		tok = token_stream_get(ts);
+		if (equal(tok, ";"))
+		{
+			token_stream_advance(ts);
+		}
+		else
+		{
+			error_tok(tok, "expect ;");
+		}
+		return node;
+	}
 	return expr_stmt(ts);
 }
 
@@ -256,7 +272,7 @@ AST_node_t *primary(token_stream_t *ts)
 
 	if (tok->kind == TK_IDENT)
 	{
-		var_t *var = var_stream_find(vs, var);
+		var_t *var = var_stream_find(vs, tok->loc);
 		if (!var)
 		{
 			var = var_create(tok->loc, tok->len, 0);

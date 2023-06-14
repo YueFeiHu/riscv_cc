@@ -19,6 +19,12 @@ assert() {
 
 }
 
+# [12] 支持return
+assert 1 'return 1; 2; 3;'
+assert 2 '1; return 2; 3;'
+assert 3 '1; 2; return 3;'
+
+assert 74 'foo2=70;bar4=4;foo2+bar4;'
 # assert 期待值 输入值
 # [1] 返回指定数值
 assert 0 '0;'
@@ -65,4 +71,7 @@ assert 1 '0*9+5*2==4+4*(6/3)-2;'
 # [9] 支持;分割语句
 assert 3 '1; 2; 3;'
 assert 12 '12+23;12+99/3;78-66;'
+# [11] 支持多字母变量
+assert 3 'foo=3;'
+
 echo OK

@@ -8,7 +8,8 @@ typedef enum{
 	TK_PUNCT,
 	TK_NUM,
 	TK_IDENT,
-	TK_EOF
+	TK_KEYWORD,
+	TK_EOF,
 }TokenKind;
 
 typedef struct token token_t;

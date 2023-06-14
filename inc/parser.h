@@ -3,7 +3,8 @@
 
 #include "var.h"
 
-typedef enum{
+typedef enum
+{
   AST_NODE_ADD,
   AST_NODE_SUB,
   AST_NODE_MUL,
@@ -17,6 +18,7 @@ typedef enum{
   AST_NODE_VAR,
   AST_NODE_ASSIGN,
   AST_NODE_EPXR_STMT,
+  AST_NODE_RETURN,
 } AST_node_kind;
 
 typedef struct AST_node AST_node_t;

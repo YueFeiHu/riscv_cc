@@ -60,12 +60,12 @@ void var_stream_update(var_stream_t *var_stream, var_t *v)
     // 根据需求进行修改 offset，略
 }
 
-var_t* var_stream_find(var_stream_t *var_stream, var_t *v)
+var_t* var_stream_find(var_stream_t *var_stream, const char *str)
 {
     var_t *curr_var = var_stream->head;
 
     while (curr_var != NULL) {
-        if (curr_var == v) {
+        if (strncmp(curr_var->name, str, curr_var->name_len) == 0) {
             return curr_var;
         }
 

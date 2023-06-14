@@ -19,6 +19,6 @@ void var_stream_remove(var_stream_t *var_stream, var_t *v);
 
 void var_stream_update(var_stream_t *var_stream, var_t *v);
 
-var_t* var_stream_find(var_stream_t *var_stream, var_t *v);
+var_t* var_stream_find(var_stream_t *var_stream, const char *str);
 
 #endif

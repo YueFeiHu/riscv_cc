@@ -5,8 +5,9 @@
 var_t* var_create(const char *name, int name_len, int offset)
 {
     var_t* new_var = (var_t*) malloc(sizeof(var_t));
-    new_var->name = (char*) malloc(name_len + 1);
-    strncpy(new_var->name, name, name_len + 1);
+    new_var->name_len = name_len;
+    new_var->name = (char*) malloc(name_len);
+    strncpy(new_var->name, name, name_len);
     new_var->offset = offset;
     new_var->next = NULL;
 

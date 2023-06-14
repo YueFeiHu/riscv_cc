@@ -37,7 +37,7 @@ static void assign_var_offset(function_t *prog)
 		offset += 8;
 		var->offset = -offset;
 	}
-	prog->stack_size = align(offset, 8);
+	prog->stack_size = align(offset, 16);
 }
 
 static void gen_var_addr(AST_node_t *node)
@@ -121,9 +121,17 @@ static void gen_expr(AST_node_t *root)
 
 static void gen_stmt(AST_node_t *root)
 {
-	if (root->kind == AST_NODE_EPXR_STMT)
+	switch (root->kind)
 	{
+	case AST_NODE_EPXR_STMT:
 		gen_expr(root->left);
+		return;
+	case AST_NODE_RETURN:
+		gen_expr(root->left);
+		printf("	j .L.return\n");
+		return;
+	default:
+		break;
 	}
 }
 
@@ -157,6 +165,7 @@ void code_gen(function_t *prog)
 		root = root->stmt_list_node;
 	}
 	// Epilogue，后语
+	printf("	.L.return:\n");
 	// 将fp的值改写回sp
 	printf("	mv sp, fp\n");
 	// 将最早fp保存的值弹栈，恢复fp。
