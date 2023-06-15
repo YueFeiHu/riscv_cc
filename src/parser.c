@@ -7,6 +7,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define EQUAL_SKIP(ts, tok, str) \
+	if (equal(tok, str))\
+	{\
+		token_stream_advance(ts);\
+	}\
+	else\
+	{\
+		error_tok(tok, "expect \'"str"\'");\
+	}
+
 var_stream_t *vs;
 
 static AST_node_t *new_AST_node(AST_node_kind kind);
@@ -54,7 +64,7 @@ AST_node_t *new_var_node(var_t *var)
 // program = "{" compoundStmt
 // compoundStmt = stmt* "}"
 // stmt = "return" expr ";" | "{" compoundStmt | exprStmt
-// exprStmt = expr ";"
+// exprStmt = expr? ";"
 // expr = assign
 // assign = equality ("=" assign)?
 // equality = relational ("==" relational | "!=" relational)*
@@ -110,7 +120,7 @@ AST_node_t *stmt(token_stream_t *ts)
 		}
 		else
 		{
-			error_tok(tok, "expect ;");
+			error_tok(tok, "function[stmt] expect ';'");
 		}
 		return node;
 	}
@@ -125,8 +135,15 @@ AST_node_t *stmt(token_stream_t *ts)
 AST_node_t *expr_stmt(token_stream_t *ts)
 {
 	token_t *tok;
-	AST_node_t *node = new_unary(AST_NODE_EPXR_STMT, expr(ts));
+	AST_node_t *node;
+	tok = token_stream_get(ts);
+	if (equal(tok, ";"))
+	{
+		token_stream_advance(ts);
+		return new_AST_node(AST_NODE_BLOCK);
+	}
 
+	node = new_unary(AST_NODE_EPXR_STMT, expr(ts));
 	tok = token_stream_get(ts);
 	if (equal(tok, ";"))
 	{
@@ -134,7 +151,7 @@ AST_node_t *expr_stmt(token_stream_t *ts)
 	}
 	else
 	{
-		error_tok(tok, "expect ;");
+		error_tok(tok, "fucntion[expr_stmt] expect ';'");
 	}
 	return node;
 }

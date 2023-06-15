@@ -19,6 +19,12 @@ assert() {
 
 }
 
+# [13] 支持{...}
+assert 3 '{ {1; {2;} return 3;} }'
+
+# [14] 支持空语句
+assert 5 '{ ;;; return 5; }'
+
 # [1] 返回指定数值
 assert 0 '{ return 0; }'
 assert 42 '{ return 42; }'
@@ -80,7 +86,6 @@ assert 1 '{ return 1; 2; 3; }'
 assert 2 '{ 1; return 2; 3; }'
 assert 3 '{ 1; 2; return 3; }'
 
-# [13] 支持{...}
-assert 3 '{ {1; {2;} return 3;} }'
+
 
 echo OK
