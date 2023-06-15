@@ -144,6 +144,24 @@ static void gen_stmt(AST_node_t *root)
 		printf(".L.end.%d:\n", label_i);
 		return;
 	}
+	case AST_NODE_FOR:{
+		label_i = label_index();
+		gen_stmt(root->init_condition);
+		printf(".L.begin.%d:\n", label_i);
+		if (root->if_condition)
+		{
+			gen_expr(root->if_condition);
+			printf("	beqz a0, .L.end.%d\n", label_i);
+		}
+		gen_stmt(root->then_stmts);
+		if (root->inc_condition)
+		{
+			gen_expr(root->inc_condition);
+		}
+		printf("	j .L.begin.%d\n", label_i);
+		printf(".L.end.%d:\n", label_i);
+		return;
+	}
 	case AST_NODE_EPXR_STMT:
 		gen_expr(root->left);
 		return;

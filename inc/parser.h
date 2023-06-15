@@ -21,6 +21,7 @@ typedef enum
 	AST_NODE_RETURN,
 	AST_NODE_BLOCK,
 	AST_NODE_IF,
+	AST_NODE_FOR,
 } AST_node_kind;
 
 typedef struct AST_node AST_node_t;
@@ -36,6 +37,9 @@ struct AST_node
 	AST_node_t *if_condition;
 	AST_node_t *then_stmts;
 	AST_node_t *else_stmts;
+
+	AST_node_t *init_condition;
+	AST_node_t *inc_condition;
 
 	var_t *var;
 	int val;

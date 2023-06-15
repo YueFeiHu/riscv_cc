@@ -109,6 +109,7 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 
 // stmt = "return" expr ";"
 //        | "if" "(" expr ")" stmt ("else" stmt)?
+//        | "for" "(" exprStmt expr? ";" expr? ")" stmt
 //        | "{" compoundStmt
 //        | exprStmt
 AST_node_t *stmt(token_stream_t *ts)
@@ -128,6 +129,27 @@ AST_node_t *stmt(token_stream_t *ts)
 		{
 			error_tok(tok, "function[stmt] expect ';'");
 		}
+		return node;
+	}
+	else if (equal(tok, "for"))
+	{
+		token_stream_advance(ts);
+		node = new_AST_node(AST_NODE_FOR);
+		EQUAL_SKIP(ts, "(");
+		node->init_condition = expr_stmt(ts);
+		tok = token_stream_get(ts);
+		if (!equal(tok, ";"))
+		{
+			node->if_condition = expr(ts);
+		}
+		EQUAL_SKIP(ts, ";");
+		tok = token_stream_get(ts);
+		if (!equal(tok, ")"))
+		{
+			node->inc_condition = expr(ts);
+		}
+		EQUAL_SKIP(ts, ")");
+		node->then_stmts = stmt(ts);
 		return node;
 	}
 	else if (equal(tok, "if"))
