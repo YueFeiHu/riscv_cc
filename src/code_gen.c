@@ -4,10 +4,16 @@
 #include "var.h"
 #include "var_stream.h"
 #include <stdio.h>
-int depth;
+static int depth;
 
 static void push();
 static void pop(char *reg);
+
+static int label_index(void) {
+  static int cnt = 1;
+  return cnt++;
+}
+static int label_i;
 
 void push()
 {
@@ -124,6 +130,20 @@ static void gen_stmt(AST_node_t *root)
 	AST_node_t *cur_node;
 	switch (root->kind)
 	{
+	case AST_NODE_IF:{
+		label_i = label_index();
+		gen_expr(root->if_condition);
+		printf("	beqz a0, .L.else.%d\n",label_i);
+		gen_stmt(root->then_stmts);
+		printf("	j .L.end.%d\n", label_i);
+		printf(".L.else.%d:\n",label_i);
+		if (root->else_stmts)
+		{
+			gen_stmt(root->else_stmts);
+		}
+		printf(".L.end.%d:\n", label_i);
+		return;
+	}
 	case AST_NODE_EPXR_STMT:
 		gen_expr(root->left);
 		return;
@@ -174,7 +194,7 @@ void code_gen(function_t *prog)
 		root = root->stmt_list_node;
 	}
 	// Epilogue，后语
-	printf("	.L.return:\n");
+	printf(".L.return:\n");
 	// 将fp的值改写回sp
 	printf("	mv sp, fp\n");
 	// 将最早fp保存的值弹栈，恢复fp。

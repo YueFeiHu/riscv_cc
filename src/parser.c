@@ -7,14 +7,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define EQUAL_SKIP(ts, tok, str) \
-	if (equal(tok, str))\
+#define EQUAL_SKIP(ts, str) \
+	if (equal(token_stream_get(ts), str))\
 	{\
 		token_stream_advance(ts);\
 	}\
 	else\
 	{\
-		error_tok(tok, "expect \'"str"\'");\
+		error_tok(token_stream_get(ts), "expect \'"str"\'");\
 	}
 
 var_stream_t *vs;
@@ -63,7 +63,10 @@ AST_node_t *new_var_node(var_t *var)
 
 // program = "{" compoundStmt
 // compoundStmt = stmt* "}"
-// stmt = "return" expr ";" | "{" compoundStmt | exprStmt
+// stmt = "return" expr ";"
+//        | "if" "(" expr ")" stmt ("else" stmt)?
+//        | "{" compoundStmt
+//        | exprStmt
 // exprStmt = expr? ";"
 // expr = assign
 // assign = equality ("=" assign)?
@@ -104,7 +107,10 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	return node;
 }
 
-// stmt = "return" expr ";" | "{" compoundStmt | exprStmt
+// stmt = "return" expr ";"
+//        | "if" "(" expr ")" stmt ("else" stmt)?
+//        | "{" compoundStmt
+//        | exprStmt
 AST_node_t *stmt(token_stream_t *ts)
 {
 	AST_node_t *node;
@@ -121,6 +127,22 @@ AST_node_t *stmt(token_stream_t *ts)
 		else
 		{
 			error_tok(tok, "function[stmt] expect ';'");
+		}
+		return node;
+	}
+	else if (equal(tok, "if"))
+	{
+		token_stream_advance(ts);
+		node = new_AST_node(AST_NODE_IF);
+		EQUAL_SKIP(ts, "(");
+		node->if_condition = expr(ts);
+		EQUAL_SKIP(ts, ")");
+		node->then_stmts = stmt(ts);
+		tok = token_stream_get(ts);
+		if (equal(tok, "else"))
+		{
+			token_stream_advance(ts);
+			node->else_stmts = stmt(ts);
 		}
 		return node;
 	}
