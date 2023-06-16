@@ -2,6 +2,7 @@
 #include "function.h"
 #include "error.h"
 #include "var.h"
+#include "ast_node.h"
 #include "var_stream.h"
 #include <stdio.h>
 static int depth;
