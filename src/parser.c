@@ -66,6 +66,8 @@ AST_node_t *new_var_node(var_t *var, token_t *tok)
 // compoundStmt = stmt* "}"
 // stmt = "return" expr ";"
 //        | "if" "(" expr ")" stmt ("else" stmt)?
+//        | "for" "(" exprStmt expr? ";" expr? ")" stmt
+//        | "while" "(" expr ")" stmt
 //        | "{" compoundStmt
 //        | exprStmt
 // exprStmt = expr? ";"
@@ -75,9 +77,8 @@ AST_node_t *new_var_node(var_t *var, token_t *tok)
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
-// unary = ("+" | "-") unary | primary
+// unary = ("+" | "-" | "*" | "&") unary | primary
 // primary = "(" expr ")" | ident | num
-
 static AST_node_t *compound_stmt(token_stream_t *ts);
 static AST_node_t *stmt(token_stream_t *ts);
 static AST_node_t *expr_stmt(token_stream_t *ts);
@@ -340,11 +341,12 @@ AST_node_t *mul(token_stream_t *ts)
 			node = new_binary(AST_NODE_DIV, node, unary(ts), tok);
 			continue;
 		}
+		
 		return node;
 	}
 	return NULL;
 }
-// unary = ("+" | "-") unary | primary
+// unary = ("+" | "-" | "*" | "&") unary | primary
 static AST_node_t *unary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
@@ -353,10 +355,23 @@ static AST_node_t *unary(token_stream_t *ts)
 		token_stream_advance(ts);
 		return unary(ts);
 	}
+
 	if (equal(tok, "-"))
 	{
 		token_stream_advance(ts);
 		return new_unary(AST_NODE_NEG, unary(ts), tok);
+	}
+
+	if (equal(tok, "*"))
+	{
+		token_stream_advance(ts);
+		return new_unary(AST_NODE_DEREF, unary(ts), tok);
+	}
+
+	if (equal(tok, "&"))
+	{
+		token_stream_advance(ts);
+		return new_unary(AST_NODE_ADDR, unary(ts), tok);
 	}
 	return primary(ts);
 }
