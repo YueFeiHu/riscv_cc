@@ -26,16 +26,18 @@ typedef enum
 
 struct token;
 struct var;
+struct type;
 typedef struct AST_node AST_node_t;
 
 struct AST_node
 {
 	AST_node_kind kind;
 	struct token *end_tok;
+	struct type *data_type;
 
 	AST_node_t *left;
 	AST_node_t *right;
-	AST_node_t *stmt_list_node;
+	AST_node_t *stmt_list_next;
 	AST_node_t *block_body;
 
 	AST_node_t *if_condition;

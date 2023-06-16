@@ -5,7 +5,9 @@
 #include "ast_node.h"
 #include "var_stream.h"
 #include <stdio.h>
+
 static int depth;
+static int label_i;
 
 static void push();
 static void pop(char *reg);
@@ -14,11 +16,11 @@ static int align(int n, int align_num);
 static void assign_var_offset(function_t *prog);
 static void gen_expr(AST_node_t *root);
 
-static int label_index(void) {
+static int label_index(void) 
+{
 	static int cnt = 1;
 	return cnt++;
 }
-static int label_i;
 
 void push()
 {
@@ -115,11 +117,11 @@ static void gen_expr(AST_node_t *root)
 	switch (root->kind)
 	{
 	case AST_NODE_ADD:
-    	printf("	# a0+a1, 结果写入a0\n");
+    printf("	# a0+a1, 结果写入a0\n");
 		printf("	add a0, a0, a1\n");
 		return;
 	case AST_NODE_SUB:
-    	printf("	# a0-a1, 结果写入a0\n");
+    printf("	# a0-a1, 结果写入a0\n");
 		printf("	sub a0, a0, a1\n");
 		return;
 	case AST_NODE_MUL:
@@ -227,7 +229,7 @@ static void gen_stmt(AST_node_t *root)
 		while (cur_node)
 		{
 			gen_stmt(cur_node);
-			cur_node = cur_node->stmt_list_node;
+			cur_node = cur_node->stmt_list_next;
 		}
 		return;
 	default:
@@ -269,7 +271,7 @@ void code_gen(function_t *prog)
 	while (root)
 	{
 		gen_stmt(root);
-		root = root->stmt_list_node;
+		root = root->stmt_list_next;
 	}
 	// Epilogue，后语
   	printf("\n# =====程序结束===============\n");

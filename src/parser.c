@@ -5,6 +5,7 @@
 #include "token_stream.h"
 #include "var_stream.h"
 #include "function.h"
+#include "type.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -46,6 +47,8 @@ static AST_node_t *assign(token_stream_t *ts);
 static AST_node_t *equality(token_stream_t *ts);
 static AST_node_t *relational(token_stream_t *ts);
 static AST_node_t *add(token_stream_t *ts);
+static AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok);
+static AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
@@ -58,13 +61,14 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	token_t *tok = token_stream_get(ts);
 	while (!equal(tok, "}"))
 	{
-		cur->stmt_list_node = stmt(ts);
-		cur = cur->stmt_list_node;
+		cur->stmt_list_next = stmt(ts);
+		cur = cur->stmt_list_next;
 		tok = token_stream_get(ts);
+		type_add2node(cur);
 	}
 	token_stream_advance(ts);
 	AST_node_t *node = new_AST_node(AST_NODE_BLOCK, tok);
-	node->block_body = head.stmt_list_node;
+	node->block_body = head.stmt_list_next;
 	return node;
 }
 
@@ -265,18 +269,71 @@ AST_node_t *add(token_stream_t *ts)
 		if (equal(tok, "+"))
 		{
 			token_stream_advance(ts);
-			node = new_binary(AST_NODE_ADD, node, mul(ts), tok);
+			node = ptr_add(node, mul(ts), tok);
 			continue;
 		}
 
 		if (equal(tok, "-"))
 		{
 			token_stream_advance(ts);
-			node = new_binary(AST_NODE_SUB, node, mul(ts), tok);
+			node = ptr_sub(node, mul(ts), tok);
 			continue;
 		}
 		return node;
 	}
+	return NULL;
+}
+
+AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok)
+{
+	type_add2node(left);
+	type_add2node(right);
+	if (is_integer(left->data_type) && is_integer(right->data_type))
+	{
+		return new_binary(AST_NODE_ADD, left, right, tok);
+	}
+	if (is_pointer(left->data_type) && is_pointer(right->data_type))
+	{
+		error_tok(tok, "can not ptr + ptr");
+	}
+	if (is_integer(left->data_type) && is_pointer(right->data_type))
+	{
+		AST_node_t *temp = left;
+		left = right;
+		right = left;
+	}
+	right = new_binary(AST_NODE_MUL, right, new_num_node(8, tok), tok);
+	type_add2node(right);
+	return new_binary(AST_NODE_ADD, left, right, tok);
+}
+
+AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok)
+{
+	type_add2node(left);
+	type_add2node(right);
+	AST_node_t *node;
+	if (is_integer(left->data_type) && is_integer(right->data_type))
+	{
+		return new_binary(AST_NODE_SUB, left, right, tok);
+	}
+
+	if (is_pointer(left->data_type) && is_integer(right->data_type))
+	{
+		right = new_binary(AST_NODE_MUL, right, new_num_node(8, tok), tok);
+		type_add2node(right);
+		AST_node_t *node = new_binary(AST_NODE_SUB, left, right, tok);
+		node->data_type = left->data_type;
+		return node;
+	}
+
+	if (is_pointer(left->data_type) && is_pointer(right->data_type))
+	{
+		node = new_binary(AST_NODE_SUB, left, right, tok);
+		node->data_type = type_int;
+		return new_binary(AST_NODE_DIV, node, new_num_node(8, tok), tok);
+	}
+
+	error_tok(tok, "num - ptr error");
 	return NULL;
 }
 
@@ -306,7 +363,7 @@ AST_node_t *mul(token_stream_t *ts)
 	return NULL;
 }
 // unary = ("+" | "-" | "*" | "&") unary | primary
-static AST_node_t *unary(token_stream_t *ts)
+AST_node_t *unary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
 	if (equal(tok, "+"))
@@ -378,15 +435,7 @@ function_t *parse(token_stream_t *ts)
 {
 	vs = var_stream_create();
 	// dump_ast(root, 0);
-	token_t *tok = token_stream_get(ts);
-	if (equal(tok, "{"))
-	{
-		token_stream_advance(ts);
-	}
-	else
-	{
-		error_tok(tok, "expect {");
-	}
+	EQUAL_SKIP(ts, "{");
 	return function_create(compound_stmt(ts), vs);
 }
 

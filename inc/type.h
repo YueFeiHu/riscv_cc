@@ -4,21 +4,21 @@
 #include <stdbool.h>
 
 typedef enum {
-	TY_INT, 
-	TY_PTR, 
+	TYPE_INT, 
+	TYPE_PTR, 
 } TypeKind;
 
 typedef struct type {
-  TypeKind Kind;
-  struct Type *Base;
+  TypeKind kind;
+  struct type *base;
 }type_t;
 
 struct AST_node;
 
-extern type_t *TyInt;
+extern type_t *type_int;
 
 bool is_integer(type_t *ty);
-
+bool is_pointer(type_t *ty);
 void type_add2node(struct AST_node *node);
 
 #endif
