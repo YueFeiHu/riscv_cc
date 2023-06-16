@@ -26,9 +26,13 @@ typedef enum
 
 typedef struct AST_node AST_node_t;
 
+struct token;
+
 struct AST_node
 {
 	AST_node_kind kind;
+	struct token *end_tok;
+
 	AST_node_t *left;
 	AST_node_t *right;
 	AST_node_t *stmt_list_node;
