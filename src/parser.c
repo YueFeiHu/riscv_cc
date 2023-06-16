@@ -6,6 +6,7 @@
 #include "var_stream.h"
 #include "function.h"
 #include "type.h"
+#include "log.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -64,11 +65,11 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 		cur->stmt_list_next = stmt(ts);
 		cur = cur->stmt_list_next;
 		tok = token_stream_get(ts);
-		type_add2node(cur);
 	}
 	token_stream_advance(ts);
 	AST_node_t *node = new_AST_node(AST_NODE_BLOCK, tok);
 	node->block_body = head.stmt_list_next;
+	type_add2node(node);
 	return node;
 }
 
@@ -86,15 +87,7 @@ AST_node_t *stmt(token_stream_t *ts)
 	{
 		token_stream_advance(ts);
 		node = new_unary(AST_NODE_RETURN, expr(ts), tok);
-		tok = token_stream_get(ts);
-		if (equal(tok, ";"))
-		{
-			token_stream_advance(ts);
-		}
-		else
-		{
-			error_tok(tok, "function[stmt] expect ';'");
-		}
+		EQUAL_SKIP(ts, ";");
 		return node;
 	}
 	else if (equal(tok, "while"))
@@ -182,7 +175,8 @@ AST_node_t *expr(token_stream_t *ts)
 	return assign(ts);
 }
 
-static AST_node_t *assign(token_stream_t *ts)
+// assign = equality ("=" assign)?
+static AST_node_t *assign(token_stream_t *ts) 
 {
 	token_t *tok;
 	AST_node_t *node = equality(ts);
@@ -303,7 +297,7 @@ AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok)
 		right = left;
 	}
 	right = new_binary(AST_NODE_MUL, right, new_num_node(8, tok), tok);
-	type_add2node(right);
+	// type_add2node(right);
 	return new_binary(AST_NODE_ADD, left, right, tok);
 }
 

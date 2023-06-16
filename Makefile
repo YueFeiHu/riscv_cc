@@ -3,10 +3,14 @@ INC_DIR := ./inc
 BIN_DIR := ./bin
 TESTS_DIR := ./tests
 
+THIRD_PARTY_DIR := ./thirdparty
+
 CC := gcc
-CFLAGS := -std=c11 -g -fno-common -I${INC_DIR}
+CFLAGS := -std=c11 -g -fno-common -I${INC_DIR} -I${THIRD_PARTY_DIR}/log.c/src
 
 SRC_FILES := $(wildcard ${SRC_DIR}/*.c)
+SRC_FILES += $(wildcard ${THIRD_PARTY_DIR}/log.c/src/*.c)
+
 OBJ_FILES := $(patsubst ${SRC_DIR}/%.c, ${BIN_DIR}/%.o, ${SRC_FILES})
 
 .DEFAULT_GOAL := all

@@ -1,6 +1,7 @@
 #!/bin/bash
 RISCV=/home/hyf/riscv
 TEST_DIR=./tests
+
 assert() {
   expected="$1"
   input="$2"
@@ -20,10 +21,16 @@ assert() {
 }
 
 # assert 期待值 输入值
-# assert 期待值 输入值
+
+# [21] 支持指针的算术运算
+assert 3 '{ x=3; y=5; return *(&y-1); }'
+assert 5 '{ x=3; y=5; return *(&x+1); }'
+assert 7 '{ x=3; y=5; *(&y-1)=7; return x; }'
+assert 7 '{ x=3; y=5; *(&x+1)=7; return y; }'
+
 # [1] 返回指定数值
 assert 0 '{ return 0; }'
-assert 42 '{ return 42; }'
+assert 41 '{ return 41; }'
 
 # [2] 支持+ -运算符
 assert 34 '{ return 12-34+56; }'

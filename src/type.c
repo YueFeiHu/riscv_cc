@@ -16,7 +16,7 @@ bool is_pointer(type_t *ty)
 }
 void type_add2node(AST_node_t *node)
 {
-    if (node == NULL && node->data_type != NULL)
+    if (node == NULL || node->data_type != NULL)
     {
         return;
     }
@@ -51,7 +51,7 @@ void type_add2node(AST_node_t *node)
     case AST_NODE_VAR:
     case AST_NODE_NUM:
         node->data_type = type_int;
-    
+        return;
     case AST_NODE_ADDR:
         node->data_type = type_ptr_create(node->left->data_type);
         return;
