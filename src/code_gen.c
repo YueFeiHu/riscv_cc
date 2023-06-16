@@ -146,7 +146,10 @@ static void gen_stmt(AST_node_t *root)
 	}
 	case AST_NODE_FOR:{
 		label_i = label_index();
-		gen_stmt(root->init_condition);
+		if (root->init_condition)
+		{
+			gen_stmt(root->init_condition);
+		}
 		printf(".L.begin.%d:\n", label_i);
 		if (root->if_condition)
 		{
