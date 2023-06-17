@@ -122,7 +122,7 @@ void token_stream_advance(token_stream_t *ts)
     }
     else
     {
-        error("token已经处理完了, 无法获取");
+        error_log("token已经处理完了, 无法获取");
     }
 }
 

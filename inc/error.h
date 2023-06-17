@@ -5,7 +5,7 @@
 
 struct token;
 
-void error(const char *fmt, ...);
+void error_log(const char *fmt, ...);
 void error_at(const char *loc, char *fmt, ...);
 void error_tok(const struct token *tok, char *fmt, ...);
 

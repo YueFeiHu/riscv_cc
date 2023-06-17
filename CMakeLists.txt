@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(rvcc VERSION 1.0)
 
+add_compile_definitions(DEBUG)
+
+
 file(GLOB SRC_LIST "src/*.c" "thirdparty/log.c/src/*.c")
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/inc

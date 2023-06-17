@@ -45,8 +45,8 @@ var_stream_t *vs;
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-" | "*" | "&") unary | primary
-// primary = "(" expr ")" | ident args? | num
-// args = "(" ")"
+// primary = "(" expr ")" | ident func-args? | num
+// funcall = ident "(" (assign ("," assign)*)? ")"
 static AST_node_t *compound_stmt(token_stream_t *ts);
 static AST_node_t *declaration(token_stream_t *ts);
 static type_t *declspec(token_stream_t *ts);
@@ -63,6 +63,7 @@ static AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
+static AST_node_t *func_call(token_stream_t *ts);
 
 // compoundStmt = (declaration | stmt)* "}"
 static AST_node_t *compound_stmt(token_stream_t *ts)
@@ -485,12 +486,7 @@ AST_node_t *primary(token_stream_t *ts)
 	{
 		if (token_equal_str(token_stream_peek_next(ts), "("))
 		{
-			AST_node_t *node = new_AST_node(AST_NODE_FUNC_CALL, tok);
-			node->func_call = strndup(tok->loc, tok->len);
-			token_stream_advance(ts);
-			token_stream_advance(ts);
-			EQUAL_SKIP(ts, ")");
-			return node;
+			return func_call(ts);
 		}
 		var_t *var = var_stream_find(vs, tok->loc);
 		if (!var)
@@ -511,6 +507,34 @@ AST_node_t *primary(token_stream_t *ts)
 	}
 	error_tok(tok, "expect an expression");
 	return NULL;
+}
+
+static AST_node_t *func_call(token_stream_t *ts)
+{
+	token_t *func_name_tok = token_stream_get(ts);
+	token_stream_advance(ts);
+	token_stream_advance(ts);
+	token_t *end_tok = token_stream_get(ts);
+
+	AST_node_t head = {};
+	AST_node_t *cur = &head;
+
+	while(!token_equal_str(end_tok, ")"))
+	{
+		if (cur != &head)
+		{
+			EQUAL_SKIP(ts, ",");
+			end_tok = token_stream_get(ts);
+		}
+		cur->stmt_list_next = assign(ts);
+		cur = cur->stmt_list_next;
+		end_tok = token_stream_get(ts);
+	}
+	EQUAL_SKIP(ts, ")");
+	AST_node_t *node = new_AST_node(AST_NODE_FUNC_CALL, func_name_tok);
+	node->func_call_name = strndup(func_name_tok->loc, func_name_tok->len);
+	node->func_call_args = head.stmt_list_next;
+	return node;
 }
 
 // program = "{" compoundStmt

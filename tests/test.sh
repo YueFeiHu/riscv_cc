@@ -2,12 +2,22 @@
 RISCV=/home/hyf/riscv
 TEST_DIR=./tests
 
+cat <<EOF | $RISCV/bin/riscv64-unknown-linux-gnu-gcc -xc -c -o tmp2.o -
+int ret3() { return 3; }
+int ret5() { return 5; }
+int add2(int x, int y) { return x+y; }
+int sub2(int x, int y) { return x-y; }
+int add6(int a, int b, int c, int d, int e, int f) {
+  return a+b+c+d+e+f;
+}
+EOF
+
 assert() {
   expected="$1"
   input="$2"
 
   ./rvcc "$input" > $TEST_DIR/tmp.s || exit
-  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o $TEST_DIR/tmp $TEST_DIR/tmp.s
+  $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o $TEST_DIR/tmp $TEST_DIR/tmp.s tmp2.o
   $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot $TEST_DIR/tmp
 
   actual="$?"
@@ -20,11 +30,18 @@ assert() {
 
 }
 
+# [24] 支持最多6个参数的函数调用
+assert 8 '{ return add2(3, 5); }'
+assert 2 '{ return sub2(5, 3); }'
+assert 21 '{ return add6(1,2,3,4,5,6); }'
+assert 66 '{ return add6(1,2,add6(3,4,5,6,7,8),9,10,11); }'
+assert 136 '{ return add6(1,2,add6(3,add6(4,5,6,7,8,9),10,11,12,13),14,15,16); }'
+
 # assert 期待值 输入值
 # [23] 支持零参函数调用
-assert 1 '{ return ret3(); }'
-assert 1 '{ return ret5(); }'
-assert 1 '{ return ret3()+ret5(); }'
+assert 5 '{ return ret5(); }'
+assert 3 '{ return ret3(); }'
+assert 8 '{ return ret3()+ret5(); }'
 
 
 # [22] 支持int关键字

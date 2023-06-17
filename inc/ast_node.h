@@ -48,7 +48,8 @@ struct AST_node
 	AST_node_t *init_condition;
 	AST_node_t *inc_condition;
 
-	char *func_call;
+	char *func_call_name;
+	AST_node_t *func_call_args;
 
 	struct var *var;
 	int val;

@@ -49,6 +49,7 @@ void type_add2node(AST_node_t *node)
     case AST_NODE_LE:
     case AST_NODE_VAR:
     case AST_NODE_NUM:
+    case AST_NODE_FUNC_CALL:
         node->data_type = type_int;
         return;
     case AST_NODE_ADDR:

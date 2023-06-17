@@ -7,7 +7,7 @@ extern char *current_line;
 
 static void verror_at(const char *loc, char *fmt, va_list va);
 
-void error(const char *fmt, ...)
+void error_log(const char *fmt, ...)
 {
 	va_list va;
 	va_start(va, fmt);

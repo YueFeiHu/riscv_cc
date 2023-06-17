@@ -8,6 +8,7 @@
 
 static int depth;
 static int label_i;
+static char *func_call_args_reg[] = {"a0", "a1", "a2", "a3", "a4", "a5"};
 
 static void push();
 static void pop(char *reg);
@@ -15,6 +16,7 @@ static void gen_expr(AST_node_t *root);
 static int align(int n, int align_num);
 static void assign_var_offset(function_t *prog);
 static void gen_expr(AST_node_t *root);
+static void pre_gen_function();
 
 static int label_index(void)
 {
@@ -68,7 +70,7 @@ static void gen_var_addr(AST_node_t *node)
 		gen_expr(node->left);
 		return;
 	}
-	error("not an lvalue");
+	error_log("not an lvalue");
 }
 
 static void gen_expr(AST_node_t *root)
@@ -105,10 +107,24 @@ static void gen_expr(AST_node_t *root)
 		printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
 		printf("	ld a0, 0(a0)\n");
 		return;
-	case AST_NODE_FUNC_CALL:
-    printf("\n  # 调用函数%s\n", root->func_call);
-    printf("  call %s\n",root->func_call);
+	case AST_NODE_FUNC_CALL: {
+		int num_args = 0;
+		for (AST_node_t *arg_node = root->func_call_args; 
+				arg_node; 
+				arg_node = arg_node->stmt_list_next)
+		{
+			gen_expr(arg_node);
+			push();
+			num_args++;
+		}
+		for (int i = num_args - 1; i >= 0; i--)
+		{
+			pop(func_call_args_reg[i]);
+		}
+    printf("\n  # 调用函数%s\n", root->func_call_name);
+    printf("	call %s\n",root->func_call_name);
 		return;
+	}
 	default:
 		break;
 	}
@@ -243,10 +259,33 @@ static void gen_stmt(AST_node_t *root)
 	}
 }
 
+void pre_gen_function()
+{
+	printf(".global add2\n");
+	printf(".add2:\n");
+	printf("	add a0, a0, a1\n");
+	printf("	ret\n\n");
+
+	printf(".global sub2\n");
+	printf(".sub2:\n");
+	printf("	sub a0, a0, a1\n");
+	printf("	ret\n\n");
+
+	printf(".global add6\n");
+	printf(".add6:\n");
+	printf("	add a0, a0, a1\n");
+	printf("	add a0, a0, a2\n");
+	printf("	add a0, a0, a3\n");
+	printf("	add a0, a0, a4\n");
+	printf("	add a0, a0, a5\n");
+	printf("	ret\n\n");
+}
+
 void code_gen(function_t *prog)
 {
 	assign_var_offset(prog);
 	printf("	.text\n");
+	// pre_gen_function();
 	printf("	# 定义全局main段\n");
 	printf("	.global main\n");
 	printf("\n# =====程序开始===============\n");
