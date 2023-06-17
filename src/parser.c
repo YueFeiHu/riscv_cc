@@ -25,12 +25,16 @@
 
 var_stream_t *vs;
 
-// program = "{" compoundStmt
+// program = functionDefinition*
+// functionDefinition = declspec declarator "{" compoundStmt*
+// declspec = "int"
+// declarator = "*"* ident typeSuffix
+// typeSuffix = ("(" ")")?
+
 // compoundStmt = (declaration | stmt)* "}"
 // declaration =
 //    declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
-// declspec = "int"
-// declarator = "*"* ident
+
 // stmt = "return" expr ";"
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "for" "(" exprStmt expr? ";" expr? ")" stmt
@@ -47,6 +51,8 @@ var_stream_t *vs;
 // unary = ("+" | "-" | "*" | "&") unary | primary
 // primary = "(" expr ")" | ident func-args? | num
 // funcall = ident "(" (assign ("," assign)*)? ")"
+static function_t *function_define(token_stream_t *ts);
+static type_t *type_suffix(token_stream_t *ts, type_t *ty);
 static AST_node_t *compound_stmt(token_stream_t *ts);
 static AST_node_t *declaration(token_stream_t *ts);
 static type_t *declspec(token_stream_t *ts);
@@ -64,6 +70,35 @@ static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 static AST_node_t *func_call(token_stream_t *ts);
+
+// functionDefinition = declspec declarator "{" compoundStmt*
+static function_t *function_define(token_stream_t *ts)
+{
+	type_t *ty = declspec(ts);
+	ty = declarator(ts, ty);
+	vs = var_stream_create();
+	function_t *func = calloc(1, sizeof(function_t));
+	func->func_name = token_get_ident(ty->name_token);
+	EQUAL_SKIP(ts, "{");
+	func->func_body = compound_stmt(ts);
+	func->local_vars = vs;
+	return func;
+}
+
+static type_t *type_suffix(token_stream_t *ts, type_t *ty)
+{
+	token_t *tok = token_stream_get(ts);
+	if (token_equal_str(tok, "("))
+	{
+		if (token_equal_str(token_stream_peek_next(ts), ")"))
+		{
+			token_stream_advance(ts);
+			token_stream_advance(ts);
+			return type_func_create(ty);
+		}
+	}
+	return type_int;
+}
 
 // compoundStmt = (declaration | stmt)* "}"
 static AST_node_t *compound_stmt(token_stream_t *ts)
@@ -136,7 +171,7 @@ type_t *declspec(token_stream_t *ts)
 	return type_int;
 }
 
-// declarator = "*"* ident
+// declarator = "*"* ident typeSuffix
 type_t *declarator(token_stream_t *ts, type_t *type)
 {
 	while(token_stream_consume(ts,"*"))
@@ -149,6 +184,7 @@ type_t *declarator(token_stream_t *ts, type_t *type)
 	{
 		error_tok(tok, "expect a variable name");
 	}
+	type = type_suffix(ts, type);
 	type->name_token = tok;
 	return type;
 }
@@ -540,10 +576,16 @@ static AST_node_t *func_call(token_stream_t *ts)
 // program = "{" compoundStmt
 function_t *parse(token_stream_t *ts)
 {
-	vs = var_stream_create();
-	// dump_ast(root, 0);
-	EQUAL_SKIP(ts, "{");
-	return function_create(compound_stmt(ts), vs);
+	function_t head;
+	function_t *cur = &head;
+	token_t *tok = token_stream_get(ts);
+	while (tok->kind != TK_EOF)
+	{
+		cur->next_function = function_define(ts);
+		cur = cur->next_function;
+		tok = token_stream_get(ts);
+	}
+	return head.next_function;
 }
 
 void dump_ast(AST_node_t *root, int depth)

@@ -6,6 +6,8 @@ struct var_stream;
 
 typedef struct function
 {
+    char *func_name;
+    struct function *next_function;
     struct AST_node *func_body;
     struct var_stream *local_vars;
     int stack_size;

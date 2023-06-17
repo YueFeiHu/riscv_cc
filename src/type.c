@@ -77,3 +77,11 @@ type_t *type_ptr_create(type_t *base)
     ty->base = base;
     return ty;
 }
+
+type_t *type_func_create(type_t *ret_type)
+{
+    type_t *ty = calloc(1, sizeof(type_t));
+    ty->kind = TYPE_FUNC;
+    ty->base = ret_type;
+    return ty;
+}
