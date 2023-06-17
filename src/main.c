@@ -26,10 +26,10 @@ int main(int argc, char **argv)
 	}
 	token_stream_t *ts = tokenize(argv[1]);
 #else
-	char *str = "{ x=3; y=5; return *(&y-1); }";
+	char *str = "{ int x=3, y=5; return x+y;  }";
 	token_stream_t *ts = tokenize(str);
+	token_stream_dump(ts);
 #endif
-	// token_stream_dump(ts);
 	struct function *func = parse(ts);
 	code_gen(func);
 

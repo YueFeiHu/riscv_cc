@@ -3,15 +3,17 @@
 
 #include <stdbool.h>
 
+struct type;
 typedef struct var
 {
     char *name;
     int name_len;
     int offset;
+    struct type *type;
     struct var *next;
 }var_t;
 
-var_t* var_create(const char *name, int name_len, int offset);
+var_t* var_create(const char *name, int name_len, struct type *ty);
 
 bool var_equal(var_t *lhs, var_t* rhs);
 

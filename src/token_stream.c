@@ -132,16 +132,16 @@ void token_stream_dump(token_stream_t *ts)
     while (head != NULL) {
         switch (head->kind) {
             case TK_IDENT:
-                printf("IDENT: %.*s\n", head->len, head->loc);
+                printf("IDENT: \t%.*s\n", head->len, head->loc);
                 break;
             case TK_PUNCT:
-                printf("PUNCT: %.*s\n", head->len, head->loc);
+                printf("PUNCT: \t%.*s\n", head->len, head->loc);
                 break;
             case TK_NUM:
-                printf("NUM: %d\n", head->val);
+                printf("NUM: \t%d\n", head->val);
                 break;
             case TK_EOF:
-                printf("EOF\n");
+                printf("EOF\t\n");
                 break;
             default:
                 printf("Unknown token kind.\n");
@@ -149,4 +149,14 @@ void token_stream_dump(token_stream_t *ts)
         }
         head = head->next;
     }
+}
+
+bool token_stream_consume(token_stream_t *ts, char *str)
+{
+	if (token_equal_str(token_stream_get(ts), str))
+	{
+		token_stream_advance(ts);
+		return true;
+	}
+	return false;
 }

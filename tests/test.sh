@@ -21,6 +21,9 @@ assert() {
 }
 
 # assert 期待值 输入值
+# [22] 支持int关键字
+assert 8 '{ int x, y; x=3; y=5; return x+y; }'
+assert 8 '{ int x=3, y=5; return x+y; }'
 
 # [21] 支持指针的算术运算
 assert 3 '{ x=3; y=5; return *(&y-1); }'

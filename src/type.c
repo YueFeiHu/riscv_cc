@@ -4,7 +4,6 @@
 
 type_t *type_int = &(type_t){TYPE_INT, NULL};
 
-static type_t *type_ptr_create(type_t *base);
 
 bool is_integer(type_t *ty)
 {

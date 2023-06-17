@@ -10,21 +10,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define EQUAL_SKIP(ts, str) \
-	if (token_equal_str(token_stream_get(ts), str))\
-	{\
-		token_stream_advance(ts);\
-	}\
-	else\
-	{\
-		error_tok(token_stream_get(ts), "expect \'"str"\'");\
+#define EQUAL_SKIP(ts, str)                                    \
+	if (token_equal_str(token_stream_get(ts), str))            \
+	{                                                          \
+		token_stream_advance(ts);                              \
+	}                                                          \
+	else                                                       \
+	{                                                          \
+		error_tok(token_stream_get(ts), "expect \'" str "\'"); \
 	}
 
 var_stream_t *vs;
 
-
 // program = "{" compoundStmt
-// compoundStmt = stmt* "}"
+// compoundStmt = (declaration | stmt)* "}"
+// declaration =
+//    declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+// declspec = "int"
+// declarator = "*"* ident
 // stmt = "return" expr ";"
 //        | "if" "(" expr ")" stmt ("else" stmt)?
 //        | "for" "(" exprStmt expr? ";" expr? ")" stmt
@@ -41,6 +44,9 @@ var_stream_t *vs;
 // unary = ("+" | "-" | "*" | "&") unary | primary
 // primary = "(" expr ")" | ident | num
 static AST_node_t *compound_stmt(token_stream_t *ts);
+static AST_node_t *declaration(token_stream_t *ts);
+static type_t *declspec(token_stream_t *ts);
+static type_t *declarator(token_stream_t *ts, type_t *type);
 static AST_node_t *stmt(token_stream_t *ts);
 static AST_node_t *expr_stmt(token_stream_t *ts);
 static AST_node_t *expr(token_stream_t *ts);
@@ -54,7 +60,7 @@ static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 
-// compoundStmt = stmt* "}"
+// compoundStmt = (declaration | stmt)* "}"
 static AST_node_t *compound_stmt(token_stream_t *ts)
 {
 	AST_node_t head;
@@ -62,7 +68,14 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	token_t *tok = token_stream_get(ts);
 	while (!token_equal_str(tok, "}"))
 	{
-		cur->stmt_list_next = stmt(ts);
+		if (token_equal_str(tok, "int"))
+		{
+			cur->stmt_list_next = declaration(ts);
+		}
+		else
+		{
+			cur->stmt_list_next = stmt(ts);
+		}
 		cur = cur->stmt_list_next;
 		tok = token_stream_get(ts);
 	}
@@ -71,6 +84,68 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	node->block_body = head.stmt_list_next;
 	type_add2node(node);
 	return node;
+}
+
+// declaration =
+//    declspec (declarator ("=" expr)? ("," declarator ("=" expr)?)*)? ";"
+AST_node_t *declaration(token_stream_t *ts)
+{
+	type_t *base_type = declspec(ts);
+	AST_node_t head = {};
+	AST_node_t *cur = &head;
+	int i = 0;
+	token_t *tok = token_stream_get(ts);
+	while (!token_equal_str(tok, ";"))
+	{
+		if (i++ > 0)
+		{
+			EQUAL_SKIP(ts, ",");
+			tok = token_stream_get(ts);
+		}
+		type_t *ty = declarator(ts, base_type);
+		var_t *var = var_create(token_get_ident(ty->name_token), ty->name_token->len, ty);
+		var_stream_add(vs, var);
+		tok = token_stream_get(ts);
+		if (!token_equal_str(tok, "="))
+		{
+			continue;
+		}
+		AST_node_t *left = new_var_node(var, ty->name_token);
+		token_stream_advance(ts);
+		AST_node_t *right = assign(ts);
+		AST_node_t *node = new_binary(AST_NODE_ASSIGN, left, right, tok);
+		cur->stmt_list_next = new_unary(AST_NODE_EPXR_STMT, node, tok);
+		cur = cur->stmt_list_next;
+		tok = token_stream_get(ts);
+	}
+	AST_node_t *node = new_AST_node(AST_NODE_BLOCK, tok);
+	node->block_body = head.stmt_list_next;
+	token_stream_advance(ts);
+	return node;
+}
+
+// declspec = "int"
+type_t *declspec(token_stream_t *ts)
+{
+	EQUAL_SKIP(ts, "int");
+	return type_int;
+}
+
+// declarator = "*"* ident
+type_t *declarator(token_stream_t *ts, type_t *type)
+{
+	while(token_stream_consume(ts,"*"))
+	{
+		type = type_ptr_create(type);
+	}
+	token_t *tok = token_stream_get(ts);
+	token_stream_advance(ts);
+	if (tok->kind != TK_IDENT)
+	{
+		error_tok(tok, "expect a variable name");
+	}
+	type->name_token = tok;
+	return type;
 }
 
 // stmt = "return" expr ";"
@@ -176,7 +251,7 @@ AST_node_t *expr(token_stream_t *ts)
 }
 
 // assign = equality ("=" assign)?
-static AST_node_t *assign(token_stream_t *ts) 
+static AST_node_t *assign(token_stream_t *ts)
 {
 	token_t *tok;
 	AST_node_t *node = equality(ts);
@@ -351,7 +426,7 @@ AST_node_t *mul(token_stream_t *ts)
 			node = new_binary(AST_NODE_DIV, node, unary(ts), tok);
 			continue;
 		}
-		
+
 		return node;
 	}
 	return NULL;
@@ -406,7 +481,7 @@ AST_node_t *primary(token_stream_t *ts)
 		var_t *var = var_stream_find(vs, tok->loc);
 		if (!var)
 		{
-			var = var_create(tok->loc, tok->len, 0);
+			var = var_create(tok->loc, tok->len, type_int);
 			var_stream_add(vs, var);
 		}
 		AST_node_t *var_node = new_var_node(var, tok);

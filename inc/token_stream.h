@@ -2,6 +2,7 @@
 #define __TOKEN_STREAM_H__
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 struct token;
 
@@ -24,4 +25,5 @@ void token_stream_advance(token_stream_t *ts);
 
 void token_stream_dump(token_stream_t *ts);
 
+bool token_stream_consume(token_stream_t *ts, char *str);
 #endif

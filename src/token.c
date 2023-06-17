@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "token.h"
 #include "error.h"
 #include "token_stream.h"
@@ -22,6 +24,14 @@ int token_get_val(const token_t *tok)
 	return tok->val;
 }
 
+char *token_get_ident(const token_t *tok)
+{
+	if (tok->kind != TK_IDENT)
+	{
+		error_tok(tok, "expected an identifier");
+	}
+	return strndup(tok->loc, tok->len);
+}
 token_t *token_create(TokenKind kind, const char *start,const char *end)
 {
 	token_t *tok = calloc(1, sizeof(token_t));
