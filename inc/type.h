@@ -8,9 +8,11 @@ typedef enum {
 	TYPE_PTR, 
 } TypeKind;
 
+struct token;
 typedef struct type {
   TypeKind kind;
   struct type *base;
+  struct token *name;
 }type_t;
 
 struct AST_node;

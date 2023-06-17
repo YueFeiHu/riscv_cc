@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #define EQUAL_SKIP(ts, str) \
-	if (equal(token_stream_get(ts), str))\
+	if (token_equal_str(token_stream_get(ts), str))\
 	{\
 		token_stream_advance(ts);\
 	}\
@@ -60,7 +60,7 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	AST_node_t head;
 	AST_node_t *cur = &head;
 	token_t *tok = token_stream_get(ts);
-	while (!equal(tok, "}"))
+	while (!token_equal_str(tok, "}"))
 	{
 		cur->stmt_list_next = stmt(ts);
 		cur = cur->stmt_list_next;
@@ -83,14 +83,14 @@ AST_node_t *stmt(token_stream_t *ts)
 {
 	AST_node_t *node;
 	token_t *tok = token_stream_get(ts);
-	if (equal(tok, "return"))
+	if (token_equal_str(tok, "return"))
 	{
 		token_stream_advance(ts);
 		node = new_unary(AST_NODE_RETURN, expr(ts), tok);
 		EQUAL_SKIP(ts, ";");
 		return node;
 	}
-	else if (equal(tok, "while"))
+	else if (token_equal_str(tok, "while"))
 	{
 		token_stream_advance(ts);
 		node = new_AST_node(AST_NODE_FOR, tok);
@@ -101,20 +101,20 @@ AST_node_t *stmt(token_stream_t *ts)
 		node->then_stmts = stmt(ts);
 		return node;
 	}
-	else if (equal(tok, "for"))
+	else if (token_equal_str(tok, "for"))
 	{
 		token_stream_advance(ts);
 		node = new_AST_node(AST_NODE_FOR, tok);
 		EQUAL_SKIP(ts, "(");
 		node->init_condition = expr_stmt(ts);
 		tok = token_stream_get(ts);
-		if (!equal(tok, ";"))
+		if (!token_equal_str(tok, ";"))
 		{
 			node->if_condition = expr(ts);
 		}
 		EQUAL_SKIP(ts, ";");
 		tok = token_stream_get(ts);
-		if (!equal(tok, ")"))
+		if (!token_equal_str(tok, ")"))
 		{
 			node->inc_condition = expr(ts);
 		}
@@ -122,7 +122,7 @@ AST_node_t *stmt(token_stream_t *ts)
 		node->then_stmts = stmt(ts);
 		return node;
 	}
-	else if (equal(tok, "if"))
+	else if (token_equal_str(tok, "if"))
 	{
 		token_stream_advance(ts);
 		node = new_AST_node(AST_NODE_IF, tok);
@@ -131,14 +131,14 @@ AST_node_t *stmt(token_stream_t *ts)
 		EQUAL_SKIP(ts, ")");
 		node->then_stmts = stmt(ts);
 		tok = token_stream_get(ts);
-		if (equal(tok, "else"))
+		if (token_equal_str(tok, "else"))
 		{
 			token_stream_advance(ts);
 			node->else_stmts = stmt(ts);
 		}
 		return node;
 	}
-	else if (equal(tok, "{"))
+	else if (token_equal_str(tok, "{"))
 	{
 		token_stream_advance(ts);
 		return compound_stmt(ts);
@@ -151,7 +151,7 @@ AST_node_t *expr_stmt(token_stream_t *ts)
 	token_t *tok;
 	AST_node_t *node;
 	tok = token_stream_get(ts);
-	if (equal(tok, ";"))
+	if (token_equal_str(tok, ";"))
 	{
 		token_stream_advance(ts);
 		return new_AST_node(AST_NODE_BLOCK, tok);
@@ -159,7 +159,7 @@ AST_node_t *expr_stmt(token_stream_t *ts)
 
 	node = new_unary(AST_NODE_EPXR_STMT, expr(ts), tok);
 	tok = token_stream_get(ts);
-	if (equal(tok, ";"))
+	if (token_equal_str(tok, ";"))
 	{
 		token_stream_advance(ts);
 	}
@@ -182,7 +182,7 @@ static AST_node_t *assign(token_stream_t *ts)
 	AST_node_t *node = equality(ts);
 	tok = token_stream_get(ts);
 
-	if (equal(tok, "="))
+	if (token_equal_str(tok, "="))
 	{
 		token_stream_advance(ts);
 		return new_binary(AST_NODE_ASSIGN, node, assign(ts), tok);
@@ -197,13 +197,13 @@ AST_node_t *equality(token_stream_t *ts)
 	while (true)
 	{
 		tok = token_stream_get(ts);
-		if (equal(tok, "=="))
+		if (token_equal_str(tok, "=="))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_EQ, node, relational(ts), tok);
 			continue;
 		}
-		if (equal(tok, "!="))
+		if (token_equal_str(tok, "!="))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_NE, node, relational(ts), tok);
@@ -221,28 +221,28 @@ AST_node_t *relational(token_stream_t *ts)
 	while (true)
 	{
 		tok = token_stream_get(ts);
-		if (equal(tok, "<"))
+		if (token_equal_str(tok, "<"))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_LT, node, add(ts), tok);
 			continue;
 		}
 
-		if (equal(tok, "<="))
+		if (token_equal_str(tok, "<="))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_LE, node, add(ts), tok);
 			continue;
 		}
 
-		if (equal(tok, ">"))
+		if (token_equal_str(tok, ">"))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_LT, add(ts), node, tok);
 			continue;
 		}
 
-		if (equal(tok, ">="))
+		if (token_equal_str(tok, ">="))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_LE, add(ts), node, tok);
@@ -260,14 +260,14 @@ AST_node_t *add(token_stream_t *ts)
 	while (true)
 	{
 		tok = token_stream_get(ts);
-		if (equal(tok, "+"))
+		if (token_equal_str(tok, "+"))
 		{
 			token_stream_advance(ts);
 			node = ptr_add(node, mul(ts), tok);
 			continue;
 		}
 
-		if (equal(tok, "-"))
+		if (token_equal_str(tok, "-"))
 		{
 			token_stream_advance(ts);
 			node = ptr_sub(node, mul(ts), tok);
@@ -338,14 +338,14 @@ AST_node_t *mul(token_stream_t *ts)
 	while (true)
 	{
 		tok = token_stream_get(ts);
-		if (equal(tok, "*"))
+		if (token_equal_str(tok, "*"))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_MUL, node, unary(ts), tok);
 			continue;
 		}
 
-		if (equal(tok, "/"))
+		if (token_equal_str(tok, "/"))
 		{
 			token_stream_advance(ts);
 			node = new_binary(AST_NODE_DIV, node, unary(ts), tok);
@@ -360,25 +360,25 @@ AST_node_t *mul(token_stream_t *ts)
 AST_node_t *unary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
-	if (equal(tok, "+"))
+	if (token_equal_str(tok, "+"))
 	{
 		token_stream_advance(ts);
 		return unary(ts);
 	}
 
-	if (equal(tok, "-"))
+	if (token_equal_str(tok, "-"))
 	{
 		token_stream_advance(ts);
 		return new_unary(AST_NODE_NEG, unary(ts), tok);
 	}
 
-	if (equal(tok, "*"))
+	if (token_equal_str(tok, "*"))
 	{
 		token_stream_advance(ts);
 		return new_unary(AST_NODE_DEREF, unary(ts), tok);
 	}
 
-	if (equal(tok, "&"))
+	if (token_equal_str(tok, "&"))
 	{
 		token_stream_advance(ts);
 		return new_unary(AST_NODE_ADDR, unary(ts), tok);
@@ -389,12 +389,12 @@ AST_node_t *unary(token_stream_t *ts)
 AST_node_t *primary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
-	if (equal(tok, "("))
+	if (token_equal_str(tok, "("))
 	{
 		token_stream_advance(ts);
 		AST_node_t *tree_node = expr(ts);
 		tok = token_stream_get(ts);
-		if (equal(tok, ")"))
+		if (token_equal_str(tok, ")"))
 		{
 			token_stream_advance(ts);
 		}

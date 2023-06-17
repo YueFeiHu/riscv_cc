@@ -22,12 +22,11 @@ struct token{
 	int len;
 };
 
-struct token_stream ;
+token_t *token_create(TokenKind kind, const char *start, const char *end);
 
-token_t *skip(const token_t *tok, const char *str);
-int get_token_val(const token_t *tok);
-bool equal(const token_t *tok, const char *str);
+int token_get_val(const token_t *tok);
 
-struct token_stream *tokenize(char *p);
+bool token_equal_str(const token_t *tok, const char *str);
+
 
 #endif

@@ -6,52 +6,14 @@
 #include <ctype.h>
 #include <stdio.h>
 
-char *current_line;
-
-static token_t *new_token(TokenKind kind, const char *start, const char *end);
-static bool start_with(const char *p, const char *str);
-static int read_punct(const char *str);
-
-bool start_with(const char *p, const char *str)
-{
-	return strncmp(p, str, strlen(str)) == 0;
-}
-
-int read_punct(const char *str)
-{
-	if (start_with(str, "==") || start_with(str, "!=") || 
-			start_with(str, "<=") || start_with(str, ">="))
-			return 2;
-	return ispunct(*str) ? 1 : 0;
-}
 
 
-
-bool is_ident1(char c)
-{
-	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
-}
-
-bool is_ident2(char c)
-{
-	return is_ident1(c) || ('0' <= c && c <= '9');
-}
-
-bool equal(const token_t *tok, const char *str)
+bool token_equal_str(const token_t *tok, const char *str)
 {
 	return memcmp(tok->loc, str, tok->len) == 0 && str[tok->len] == '\0';
 }
 
-token_t *skip(const token_t *tok, const char *str)
-{
-	if (!equal(tok, str))
-	{
-		error_tok(tok, "expect '%s'", str);
-	}
-	return tok->next;
-}
-
-int get_token_val(const token_t *tok)
+int token_get_val(const token_t *tok)
 {
 	if (tok->kind != TK_NUM)
 	{
@@ -60,7 +22,7 @@ int get_token_val(const token_t *tok)
 	return tok->val;
 }
 
-token_t *new_token(TokenKind kind, const char *start, const char *end)
+token_t *token_create(TokenKind kind, const char *start,const char *end)
 {
 	token_t *tok = calloc(1, sizeof(token_t));
 	tok->kind = kind;
@@ -69,54 +31,5 @@ token_t *new_token(TokenKind kind, const char *start, const char *end)
 	return tok;
 }
 
-token_stream_t *tokenize(char *p)
-{
-	current_line = p;
-	token_stream_t *ts = token_stream_create();
 
-	token_t *cur;
-	long num;
-
-	while (*p)
-	{
-		if (isspace(*p))
-		{
-			p++;
-			continue;
-		}
-		
-		if (isdigit(*p))
-		{
-			const char *start = p;
-			num = strtol(p, &p, 10);
-			cur = new_token(TK_NUM, start, p);
-			cur->val = num;
-			token_stream_add(ts, cur);
-			continue;
-		}
-		if (is_ident1(*p))
-		{
-			char *start = p;
-			do
-			{
-				++p;
-			}while(is_ident2(*p));
-			cur = new_token(TK_IDENT, start, p);
-			token_stream_add(ts, cur);
-			continue;
-		}
-		int punct_len = read_punct(p);
-		if (punct_len)
-		{
-			cur = new_token(TK_PUNCT, p, p + punct_len);
-			token_stream_add(ts, cur);
-			p += punct_len;
-			continue;
-		}
-		error_at(p, "invalid token: %c", *p);
-	}
-	cur = new_token(TK_EOF, p, p);
-	token_stream_add(ts, cur);
-	return ts;
-}
 
