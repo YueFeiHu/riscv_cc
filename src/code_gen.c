@@ -288,10 +288,10 @@ void pre_gen_function()
 
 void code_gen(function_t *prog)
 {
-	assign_var_offset(prog);
 	printf("	.text\n");
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
+		assign_var_offset(fn);
 		printf("\n	# 定义全局%s段\n", fn->func_name);
 		printf("	.global %s\n", fn->func_name);
 		printf("\n# =====%s段开始===============\n", fn->func_name);
@@ -320,6 +320,17 @@ void code_gen(function_t *prog)
 
 		printf("	# sp腾出StackSize大小的栈空间\n");
 		printf("	addi sp, sp, -%d\n", fn->stack_size);
+
+		int reg_i = 0;
+		var_stream_t *args_vars = fn->func_params;
+		var_t *var = args_vars->head;
+		while (var != NULL)
+		{
+			printf("	# 将%s寄存器的值存入%*.s的栈地址\n", 
+								func_call_args_reg[reg_i], var->name_len, var->name);
+      printf("	sd %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
+			var = var->next;
+		}
 		printf("\n# =====%s段主体===============\n", fn->func_name);
 		current_func = fn;
 		gen_stmt(fn->func_body);

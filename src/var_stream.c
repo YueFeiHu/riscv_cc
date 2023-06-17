@@ -26,7 +26,23 @@ void var_stream_add(var_stream_t *var_stream, var_t *v)
         v->next = var_stream->head;
         var_stream->head = v;
     }
+    var_stream->var_count++;
+}
 
+void var_stream_add_tail(var_stream_t *var_stream, var_t *v)
+{
+    v->next = NULL;
+
+    if (var_stream->head == NULL)
+    {
+        var_stream->head = v;
+        var_stream->tail = v;
+    }
+    else
+    {
+        var_stream->tail->next = v;
+        var_stream->tail = v;
+    }
     var_stream->var_count++;
 }
 

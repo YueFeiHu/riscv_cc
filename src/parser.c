@@ -29,7 +29,9 @@ var_stream_t *vs;
 // functionDefinition = declspec declarator "{" compoundStmt*
 // declspec = "int"
 // declarator = "*"* ident typeSuffix
-// typeSuffix = ("(" ")")?
+// typeSuffix = ("(" funcParams? ")")?
+// funcParams = param ("," param)*
+// param = declspec declarator
 
 // compoundStmt = (declaration | stmt)* "}"
 // declaration =
@@ -71,33 +73,63 @@ static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 static AST_node_t *func_call(token_stream_t *ts);
 
+static void create_param_vars(type_t *ty)
+{
+	if (ty)
+	{
+		create_param_vars(ty->next);
+		var_stream_add(vs, var_create(token_get_ident(ty->name_token), 
+																	ty->name_token->len, ty));
+	}
+}
+
 // functionDefinition = declspec declarator "{" compoundStmt*
 static function_t *function_define(token_stream_t *ts)
 {
+	vs = var_stream_create();
 	type_t *ty = declspec(ts);
 	ty = declarator(ts, ty);
-	vs = var_stream_create();
 	function_t *func = calloc(1, sizeof(function_t));
 	func->func_name = token_get_ident(ty->name_token);
+	func->func_params = vs;
 	EQUAL_SKIP(ts, "{");
 	func->func_body = compound_stmt(ts);
 	func->local_vars = vs;
+
 	return func;
 }
 
+// typeSuffix = ("(" funcParams? ")")?
+// funcParams = param ("," param)*
+// param = declspec declarator
 static type_t *type_suffix(token_stream_t *ts, type_t *ty)
 {
 	token_t *tok = token_stream_get(ts);
 	if (token_equal_str(tok, "("))
 	{
-		if (token_equal_str(token_stream_peek_next(ts), ")"))
+		token_stream_advance(ts);
+		tok = token_stream_get(ts);
+		type_t head;
+		type_t *cur = &head;
+		while (!token_equal_str(tok, ")"))
 		{
-			token_stream_advance(ts);
-			token_stream_advance(ts);
-			return type_func_create(ty);
+			if (cur != &head)
+			{
+				EQUAL_SKIP(ts, ",");
+			}
+			type_t *base_type = declspec(ts);
+			type_t *real_type = declarator(ts, base_type);
+			var_stream_add_tail(vs, var_create(token_get_ident(real_type->name_token), 
+																		real_type->name_token->len, real_type));
+			cur->next = type_copy(real_type);
+			cur = cur->next;
+			tok = token_stream_get(ts);
 		}
+		token_stream_advance(ts);
+		ty = type_func_create(ty);
+		ty->func_params = head.next;
 	}
-	return type_int;
+	return ty;
 }
 
 // compoundStmt = (declaration | stmt)* "}"

@@ -10,6 +10,7 @@ typedef struct function
     struct function *next_function;
     struct AST_node *func_body;
     struct var_stream *local_vars;
+    struct var_stream *func_params;
     int stack_size;
 }function_t;
 

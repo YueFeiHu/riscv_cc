@@ -85,3 +85,10 @@ type_t *type_func_create(type_t *ret_type)
     ty->base = ret_type;
     return ty;
 }
+
+type_t *type_copy(type_t *ty)
+{
+    type_t *ret = calloc(1, sizeof(type_t));
+    *ret = *ty;
+    return ret;
+}

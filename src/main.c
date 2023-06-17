@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 	}
 	token_stream_t *ts = tokenize(argv[1]);
 #else
-	char *str = "int main() { return ret32(); } int ret32() { return 32; }";
+	char *str = "int main() { return sub2(4,3); } int sub2(int x, int y) { return x-y; }";
 	token_stream_t *ts = tokenize(str);
 	token_stream_dump(ts);
 #endif
