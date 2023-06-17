@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "parser.h"
 #include "token.h"
 #include "error.h"
@@ -9,6 +11,7 @@
 #include "log.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define EQUAL_SKIP(ts, str)                                    \
 	if (token_equal_str(token_stream_get(ts), str))            \
@@ -42,7 +45,8 @@ var_stream_t *vs;
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-" | "*" | "&") unary | primary
-// primary = "(" expr ")" | ident | num
+// primary = "(" expr ")" | ident args? | num
+// args = "(" ")"
 static AST_node_t *compound_stmt(token_stream_t *ts);
 static AST_node_t *declaration(token_stream_t *ts);
 static type_t *declspec(token_stream_t *ts);
@@ -460,7 +464,8 @@ AST_node_t *unary(token_stream_t *ts)
 	}
 	return primary(ts);
 }
-
+// primary = "(" expr ")" | ident args? | num
+// args = "(" ")"
 AST_node_t *primary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
@@ -478,6 +483,15 @@ AST_node_t *primary(token_stream_t *ts)
 
 	if (tok->kind == TK_IDENT)
 	{
+		if (token_equal_str(token_stream_peek_next(ts), "("))
+		{
+			AST_node_t *node = new_AST_node(AST_NODE_FUNC_CALL, tok);
+			node->func_call = strndup(tok->loc, tok->len);
+			token_stream_advance(ts);
+			token_stream_advance(ts);
+			EQUAL_SKIP(ts, ")");
+			return node;
+		}
 		var_t *var = var_stream_find(vs, tok->loc);
 		if (!var)
 		{

@@ -21,6 +21,12 @@ assert() {
 }
 
 # assert 期待值 输入值
+# [23] 支持零参函数调用
+assert 1 '{ return ret3(); }'
+assert 1 '{ return ret5(); }'
+assert 1 '{ return ret3()+ret5(); }'
+
+
 # [22] 支持int关键字
 assert 8 '{ int x, y; x=3; y=5; return x+y; }'
 assert 8 '{ int x=3, y=5; return x+y; }'

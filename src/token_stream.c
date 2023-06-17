@@ -160,3 +160,12 @@ bool token_stream_consume(token_stream_t *ts, char *str)
 	}
 	return false;
 }
+
+token_t* token_stream_peek_next(token_stream_t *ts)
+{
+	if (ts->tokens && ts->tokens->next)
+	{
+		return ts->tokens->next;
+	}
+	return NULL;
+}

@@ -105,6 +105,10 @@ static void gen_expr(AST_node_t *root)
 		printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
 		printf("	ld a0, 0(a0)\n");
 		return;
+	case AST_NODE_FUNC_CALL:
+    printf("\n  # 调用函数%s\n", root->func_call);
+    printf("  call %s\n",root->func_call);
+		return;
 	default:
 		break;
 	}
@@ -258,9 +262,12 @@ void code_gen(function_t *prog)
 	//-------------------------------//
 
 	// Prologue, 前言
+	// 将ra寄存器压栈,保存ra的值
+  printf("	# 将ra寄存器压栈,保存ra的值\n");
+  printf("	addi sp, sp, -16\n");
+  printf("	sd ra, 8(sp)\n");
 	// 将fp压入栈中，保存fp的值
 	printf("	# 将fp压栈, fp属于“被调用者保存”的寄存器, 需要恢复原值\n");
-	printf("	addi sp, sp, -8\n");
 	printf("	sd fp, 0(sp)\n");
 	// 将sp写入fp
 	printf("	# 将sp的值写入fp\n");
@@ -270,11 +277,7 @@ void code_gen(function_t *prog)
 	printf("	addi sp, sp, -%d\n", prog->stack_size);
 	AST_node_t *root = prog->func_body;
 	printf("\n# =====程序主体===============\n");
-	while (root)
-	{
-		gen_stmt(root);
-		root = root->stmt_list_next;
-	}
+	gen_stmt(root);
 	// Epilogue，后语
 	printf("\n# =====程序结束===============\n");
 	printf("# return段标签\n");
@@ -285,7 +288,9 @@ void code_gen(function_t *prog)
 	// 将最早fp保存的值弹栈，恢复fp。
 	printf("	# 将最早fp保存的值弹栈, 恢复fp和sp\n");
 	printf("	ld fp, 0(sp)\n");
-	printf("	addi sp, sp, 8\n");
-	printf("	# 返回a0值给系统调用\n");
+  // 将ra寄存器弹栈,恢复ra的值
+  printf("	# 将ra寄存器弹栈,恢复ra的值\n");
+  printf("	ld ra, 8(sp)\n");
+  printf("	addi sp, sp, 16\n");
 	printf("	ret\n");
 }

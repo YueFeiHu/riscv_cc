@@ -26,4 +26,7 @@ void token_stream_advance(token_stream_t *ts);
 void token_stream_dump(token_stream_t *ts);
 
 bool token_stream_consume(token_stream_t *ts, char *str);
+
+struct token* token_stream_peek_next(token_stream_t *ts);
+
 #endif

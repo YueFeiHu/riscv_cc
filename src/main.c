@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <time.h>
 
-// #define DEBUG 
+#define DEBUG 
 
 struct function;
 int main(int argc, char **argv)
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	}
 	token_stream_t *ts = tokenize(argv[1]);
 #else
-	char *str = "{ int x=3, y=5; return x+y;  }";
+	char *str = " { return ret5(); }";
 	token_stream_t *ts = tokenize(str);
 	token_stream_dump(ts);
 #endif

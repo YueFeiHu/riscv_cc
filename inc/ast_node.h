@@ -22,6 +22,7 @@ typedef enum
 	AST_NODE_BLOCK,
 	AST_NODE_IF,
 	AST_NODE_FOR,
+	AST_NODE_FUNC_CALL,
 } AST_node_kind;
 
 struct token;
@@ -46,6 +47,8 @@ struct AST_node
 
 	AST_node_t *init_condition;
 	AST_node_t *inc_condition;
+
+	char *func_call;
 
 	struct var *var;
 	int val;
