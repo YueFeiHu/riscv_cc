@@ -3,6 +3,7 @@
 #include "error.h"
 #include "var.h"
 #include "ast_node.h"
+#include "type.h"
 #include "var_stream.h"
 #include <stdio.h>
 
@@ -13,6 +14,8 @@ static char *func_call_args_reg[] = {"a0", "a1", "a2", "a3", "a4", "a5"};
 
 static void push();
 static void pop(char *reg);
+static void load(type_t *ty);
+static void store();
 static void gen_expr(AST_node_t *root);
 static int align(int n, int align_num);
 static void assign_var_offset(function_t *prog);
@@ -41,6 +44,23 @@ void pop(char *reg)
 	depth--;
 }
 
+static void load(type_t *ty)
+{
+	if (ty->kind == TYPE_ARRAY)
+	{
+		return;
+	}
+  printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
+  printf("	ld a0, 0(a0)\n");
+}
+
+static void store()
+{
+	pop("a1");
+	printf("	# 将a0的值, 写入到a1中存放的地址\n");
+  printf("	sd a0, 0(a1)\n");
+}
+
 static int align(int n, int align_num)
 {
 	return (n + align_num - 1) / align_num * align_num;
@@ -51,10 +71,21 @@ static void assign_var_offset(function_t *prog)
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
 		int offset = 0;
-		var_t *var = prog->local_vars->head;
+		var_t *var = fn->local_vars->head;
 		for (; var; var = var->next)
 		{
-			offset += 8;
+			offset += var->type->type_sizeof;
+			var->offset = -offset;
+		}
+		fn->stack_size = align(offset, 16);
+	}
+	for (function_t *fn = prog; fn; fn = fn->next_function)
+	{
+		int offset = 0;
+		var_t *var = fn->func_params->head;
+		for (; var; var = var->next)
+		{
+			offset += var->type->type_sizeof;
 			var->offset = -offset;
 		}
 		fn->stack_size = align(offset, 16);
@@ -92,24 +123,20 @@ static void gen_expr(AST_node_t *root)
 		return;
 	case AST_NODE_VAR:
 		gen_var_addr(root);
-		printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
-		printf("	ld a0, 0(a0)\n");
+		load(root->data_type);
 		return;
 	case AST_NODE_ASSIGN:
 		gen_var_addr(root->left);
 		push();
 		gen_expr(root->right);
-		pop("a1");
-		printf("	# 将a0的值, 写入到a1中存放的地址\n");
-		printf("	sd a0, 0(a1)\n");
+		store();	
 		return;
 	case AST_NODE_ADDR:
 		gen_var_addr(root->left);
 		return;
 	case AST_NODE_DEREF:
 		gen_expr(root->left);
-		printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
-		printf("	ld a0, 0(a0)\n");
+		load(root->data_type);
 		return;
 	case AST_NODE_FUNC_CALL:
 	{
@@ -262,36 +289,15 @@ static void gen_stmt(AST_node_t *root)
 	default:
 		break;
 	}
-}
-
-void pre_gen_function()
-{
-	printf(".global add2\n");
-	printf(".add2:\n");
-	printf("	add a0, a0, a1\n");
-	printf("	ret\n\n");
-
-	printf(".global sub2\n");
-	printf(".sub2:\n");
-	printf("	sub a0, a0, a1\n");
-	printf("	ret\n\n");
-
-	printf(".global add6\n");
-	printf(".add6:\n");
-	printf("	add a0, a0, a1\n");
-	printf("	add a0, a0, a2\n");
-	printf("	add a0, a0, a3\n");
-	printf("	add a0, a0, a4\n");
-	printf("	add a0, a0, a5\n");
-	printf("	ret\n\n");
+	error_tok(root->end_tok, "invalid statement");
 }
 
 void code_gen(function_t *prog)
 {
+	assign_var_offset(prog);
 	printf("	.text\n");
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
-		assign_var_offset(fn);
 		printf("\n	# 定义全局%s段\n", fn->func_name);
 		printf("	.global %s\n", fn->func_name);
 		printf("\n# =====%s段开始===============\n", fn->func_name);
@@ -327,7 +333,7 @@ void code_gen(function_t *prog)
 		while (var != NULL)
 		{
 			printf("	# 将%s寄存器的值存入%*.s的栈地址\n", 
-								func_call_args_reg[reg_i], var->name_len, var->name);
+								func_call_args_reg[reg_i], var->name_len +1, var->name);
       printf("	sd %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
 			var = var->next;
 		}

@@ -13,13 +13,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define EQUAL_SKIP(ts, str)                                    \
-	if (token_equal_str(token_stream_get(ts), str))            \
-	{                                                          \
+#define EQUAL_SKIP(ts, str)                                \
+	if (token_equal_str(token_stream_get(ts), str))          \
+	{                                                        \
 		token_stream_advance(ts);                              \
-	}                                                          \
-	else                                                       \
-	{                                                          \
+	}                                                        \
+	else                                                     \
+	{                                                        \
 		error_tok(token_stream_get(ts), "expect \'" str "\'"); \
 	}
 
@@ -29,8 +29,8 @@ var_stream_t *vs;
 // functionDefinition = declspec declarator "{" compoundStmt*
 // declspec = "int"
 // declarator = "*"* ident typeSuffix
-// typeSuffix = ("(" funcParams? ")")?
-// funcParams = param ("," param)*
+// typeSuffix = "(" funcParams | "[" num "]" | ε
+// funcParams = (param ("," param)*)? ")"
 // param = declspec declarator
 
 // compoundStmt = (declaration | stmt)* "}"
@@ -73,16 +73,6 @@ static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 static AST_node_t *func_call(token_stream_t *ts);
 
-static void create_param_vars(type_t *ty)
-{
-	if (ty)
-	{
-		create_param_vars(ty->next);
-		var_stream_add(vs, var_create(token_get_ident(ty->name_token), 
-																	ty->name_token->len, ty));
-	}
-}
-
 // functionDefinition = declspec declarator "{" compoundStmt*
 static function_t *function_define(token_stream_t *ts)
 {
@@ -92,6 +82,7 @@ static function_t *function_define(token_stream_t *ts)
 	function_t *func = calloc(1, sizeof(function_t));
 	func->func_name = token_get_ident(ty->name_token);
 	func->func_params = vs;
+	// vs = var_stream_create();
 	EQUAL_SKIP(ts, "{");
 	func->func_body = compound_stmt(ts);
 	func->local_vars = vs;
@@ -99,9 +90,34 @@ static function_t *function_define(token_stream_t *ts)
 	return func;
 }
 
-// typeSuffix = ("(" funcParams? ")")?
-// funcParams = param ("," param)*
+// funcParams = (param ("," param)*)? ")"
 // param = declspec declarator
+static type_t *func_params(token_stream_t *ts, type_t *ty)
+{
+	token_t *tok = token_stream_get(ts);
+	type_t head;
+	type_t *cur = &head;
+	while (!token_equal_str(tok, ")"))
+	{
+		if (cur != &head)
+		{
+			EQUAL_SKIP(ts, ",");
+		}
+		type_t *base_type = declspec(ts);
+		type_t *real_type = declarator(ts, base_type);
+		var_stream_add_tail(vs, var_create(token_get_ident(real_type->name_token),
+																			 real_type->name_token->len, real_type));
+		tok = token_stream_get(ts);
+		cur->next = real_type;
+		cur = cur->next;
+	}
+	token_stream_advance(ts);
+	ty = type_func_create(ty);
+	ty->func_params = head.next;
+	return ty;
+}
+
+// typeSuffix = "(" funcParams | "[" num "]" | ε
 static type_t *type_suffix(token_stream_t *ts, type_t *ty)
 {
 	token_t *tok = token_stream_get(ts);
@@ -109,25 +125,15 @@ static type_t *type_suffix(token_stream_t *ts, type_t *ty)
 	{
 		token_stream_advance(ts);
 		tok = token_stream_get(ts);
-		type_t head;
-		type_t *cur = &head;
-		while (!token_equal_str(tok, ")"))
-		{
-			if (cur != &head)
-			{
-				EQUAL_SKIP(ts, ",");
-			}
-			type_t *base_type = declspec(ts);
-			type_t *real_type = declarator(ts, base_type);
-			var_stream_add_tail(vs, var_create(token_get_ident(real_type->name_token), 
-																		real_type->name_token->len, real_type));
-			cur->next = type_copy(real_type);
-			cur = cur->next;
-			tok = token_stream_get(ts);
-		}
+		return func_params(ts, ty);
+	}
+	if (token_equal_str(tok, "["))
+	{
 		token_stream_advance(ts);
-		ty = type_func_create(ty);
-		ty->func_params = head.next;
+		int array_size = token_get_val(token_stream_get(ts));
+		token_stream_advance(ts);
+		EQUAL_SKIP(ts, "]");
+		return type_array_create(ty, array_size);
 	}
 	return ty;
 }
@@ -206,7 +212,7 @@ type_t *declspec(token_stream_t *ts)
 // declarator = "*"* ident typeSuffix
 type_t *declarator(token_stream_t *ts, type_t *type)
 {
-	while(token_stream_consume(ts,"*"))
+	while (token_stream_consume(ts, "*"))
 	{
 		type = type_ptr_create(type);
 	}
@@ -523,7 +529,8 @@ AST_node_t *unary(token_stream_t *ts)
 	if (token_equal_str(tok, "*"))
 	{
 		token_stream_advance(ts);
-		return new_unary(AST_NODE_DEREF, unary(ts), tok);
+		AST_node_t *node = new_unary(AST_NODE_DEREF, unary(ts), tok);
+		return node;
 	}
 
 	if (token_equal_str(tok, "&"))
@@ -587,7 +594,7 @@ static AST_node_t *func_call(token_stream_t *ts)
 	AST_node_t head = {};
 	AST_node_t *cur = &head;
 
-	while(!token_equal_str(end_tok, ")"))
+	while (!token_equal_str(end_tok, ")"))
 	{
 		if (cur != &head)
 		{

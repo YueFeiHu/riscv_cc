@@ -1,8 +1,10 @@
 #include "type.h"
 #include "ast_node.h"
+#include "error.h"
+#include "var.h"
 #include <stdlib.h>
 
-type_t *type_int = &(type_t){TYPE_INT, NULL};
+type_t *type_int = &(type_t){TYPE_INT, 8};
 
 
 bool is_integer(type_t *ty)
@@ -27,7 +29,12 @@ void type_add2node(AST_node_t *node)
     type_add2node(node->then_stmts);
     type_add2node(node->else_stmts);
 
-    for (AST_node_t *cur = node->block_body; cur ;cur = cur->stmt_list_next)
+    for (AST_node_t *cur = node->block_body; cur ; cur = cur->stmt_list_next)
+    {
+        type_add2node(cur);
+    }
+
+    for (AST_node_t *cur = node->func_call_args; cur; cur = cur->stmt_list_next)
     {
         type_add2node(cur);
     }
@@ -39,30 +46,50 @@ void type_add2node(AST_node_t *node)
     case AST_NODE_MUL:
     case AST_NODE_DIV:
     case AST_NODE_NEG:
-    case AST_NODE_ASSIGN:
         node->data_type = node->left->data_type;
         return;
-    
+
+    case AST_NODE_ASSIGN:
+        if (node->left->data_type->kind == TYPE_ARRAY)
+        {
+            error_tok(node->left->end_tok, "not an lvalue");
+        }
+        node->data_type = node->left->data_type;
+        return;
+
     case AST_NODE_EQ:
     case AST_NODE_NE:
     case AST_NODE_LT:
     case AST_NODE_LE:
-    case AST_NODE_VAR:
     case AST_NODE_NUM:
     case AST_NODE_FUNC_CALL:
         node->data_type = type_int;
         return;
-    case AST_NODE_ADDR:
-        node->data_type = type_ptr_create(node->left->data_type);
+        
+    case AST_NODE_VAR:
+        node->data_type = node->var->type;
         return;
-    case AST_NODE_DEREF:
-        if (node->left->data_type->kind == TYPE_PTR)
+
+    case AST_NODE_ADDR:{
+        type_t *ty = node->left->data_type;
+        if (ty->kind == TYPE_ARRAY)
         {
-            node->data_type = node->left->data_type->base;
+            node->data_type = type_ptr_create(ty->base_type);
         }
         else
         {
-            node->data_type = type_int;
+            node->data_type = type_ptr_create(ty);
+        }
+        return;
+    }
+    case AST_NODE_DEREF:
+        if (!node->left->data_type->base_type)
+        {
+            error_tok(node->end_tok, "invalid pointer dereference");
+        }
+        else
+        {
+            node->data_type = node->left->data_type->base_type;
         }
         return;
     default:
@@ -70,11 +97,12 @@ void type_add2node(AST_node_t *node)
     }
 }
 
-type_t *type_ptr_create(type_t *base)
+type_t *type_ptr_create(type_t *base_type)
 {
     type_t *ty = calloc(1, sizeof(type_t));
+    ty->type_sizeof = 8;
     ty->kind = TYPE_PTR;
-    ty->base = base;
+    ty->base_type = base_type;
     return ty;
 }
 
@@ -82,7 +110,17 @@ type_t *type_func_create(type_t *ret_type)
 {
     type_t *ty = calloc(1, sizeof(type_t));
     ty->kind = TYPE_FUNC;
-    ty->base = ret_type;
+    ty->base_type = ret_type;
+    return ty;
+}
+
+type_t *type_array_create(type_t *base_type, int len)
+{
+    type_t *ty = calloc(1, sizeof(type_t));
+    ty->kind = TYPE_ARRAY;
+    ty->base_type = base_type;
+    ty->array_len = len;
+    ty->type_sizeof = base_type->type_sizeof * len;
     return ty;
 }
 

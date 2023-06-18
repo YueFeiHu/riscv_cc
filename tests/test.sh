@@ -29,6 +29,13 @@ assert() {
   fi
 
 }
+
+assert 3 'int main() { int x[2]; int *y=&x; *y=3; return *x; }'
+assert 3 'int main() { int x[2]; int *y=&x; *y=3; return *x; }'
+assert 3 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *x; }'
+assert 4 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *(x+1); }'
+assert 5 'int main() { int x[3]; *x=3; *(x+1)=4; *(x+2)=5; return *(x+2); }'
+
 # [26] 支持最多6个参数的函数定义
 assert 7 'int main() { return add2(3,4); } int add2(int x, int y) { return x+y; }'
 assert 9 'int main() { return add2(3,6); } int add2(int x, int y) { return x+y; }'
