@@ -29,7 +29,7 @@ var_stream_t *vs;
 // functionDefinition = declspec declarator "{" compoundStmt*
 // declspec = "int"
 // declarator = "*"* ident typeSuffix
-// typeSuffix = "(" funcParams | "[" num "]" | ε
+// typeSuffix = "(" funcParams | "[" num "]" typeSuffix | ε
 // funcParams = (param ("," param)*)? ")"
 // param = declspec declarator
 
@@ -117,7 +117,7 @@ static type_t *func_params(token_stream_t *ts, type_t *ty)
 	return ty;
 }
 
-// typeSuffix = "(" funcParams | "[" num "]" | ε
+// typeSuffix = "(" funcParams | "[" num "]" typeSuffix | ε
 static type_t *type_suffix(token_stream_t *ts, type_t *ty)
 {
 	token_t *tok = token_stream_get(ts);
@@ -133,6 +133,7 @@ static type_t *type_suffix(token_stream_t *ts, type_t *ty)
 		int array_size = token_get_val(token_stream_get(ts));
 		token_stream_advance(ts);
 		EQUAL_SKIP(ts, "]");
+		ty = type_suffix(ts, ty);
 		return type_array_create(ty, array_size);
 	}
 	return ty;
@@ -450,7 +451,8 @@ AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok)
 		left = right;
 		right = left;
 	}
-	right = new_binary(AST_NODE_MUL, right, new_num_node(8, tok), tok);
+	right = new_binary(AST_NODE_MUL, right, 
+					new_num_node(left->data_type->base_type->type_sizeof, tok), tok);
 	// type_add2node(right);
 	return new_binary(AST_NODE_ADD, left, right, tok);
 }
@@ -478,7 +480,8 @@ AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok)
 	{
 		node = new_binary(AST_NODE_SUB, left, right, tok);
 		node->data_type = type_int;
-		return new_binary(AST_NODE_DIV, node, new_num_node(8, tok), tok);
+		return new_binary(AST_NODE_DIV, node, 
+					 new_num_node(left->data_type->base_type->type_sizeof, tok), tok);
 	}
 
 	error_tok(tok, "num - ptr error");
