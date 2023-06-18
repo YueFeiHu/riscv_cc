@@ -50,7 +50,8 @@ var_stream_t *vs;
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
-// unary = ("+" | "-" | "*" | "&") unary | primary
+// unary = ("+" | "-" | "*" | "&") unary | postfix
+// postfix = primary ("[" expr "]")*
 // primary = "(" expr ")" | ident func-args? | num
 // funcall = ident "(" (assign ("," assign)*)? ")"
 static function_t *function_define(token_stream_t *ts);
@@ -70,6 +71,7 @@ static AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *mul(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
+static AST_node_t *postfix(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 static AST_node_t *func_call(token_stream_t *ts);
 
@@ -541,7 +543,21 @@ AST_node_t *unary(token_stream_t *ts)
 		token_stream_advance(ts);
 		return new_unary(AST_NODE_ADDR, unary(ts), tok);
 	}
-	return primary(ts);
+	return postfix(ts);
+}
+static AST_node_t *postfix(token_stream_t *ts)
+{
+	AST_node_t *node = primary(ts);
+	token_t *tok = token_stream_get(ts);
+	while(token_equal_str(tok, "["))
+	{
+		token_stream_advance(ts);
+		AST_node_t *array_index_node = expr(ts);
+		EQUAL_SKIP(ts, "]");
+		node = new_unary(AST_NODE_DEREF, ptr_add(node, array_index_node, tok), tok);
+		tok = token_stream_get(ts);
+	}
+	return node;
 }
 // primary = "(" expr ")" | ident args? | num
 // args = "(" ")"
