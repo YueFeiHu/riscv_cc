@@ -576,6 +576,14 @@ AST_node_t *primary(token_stream_t *ts)
 		return tree_node;
 	}
 
+	if (token_equal_str(tok, "sizeof"))
+	{
+		token_stream_advance(ts);
+		AST_node_t *node = unary(ts);
+		type_add2node(node);
+		return new_num_node(node->data_type->type_sizeof, tok);
+	}
+
 	if (tok->kind == TK_IDENT)
 	{
 		if (token_equal_str(token_stream_peek_next(ts), "("))
