@@ -28,7 +28,7 @@ var_stream_t *global_vars;
 
 // program = (functionDefinition | globalVariable)*
 // functionDefinition = declspec declarator "{" compoundStmt*
-// declspec = "int"
+// declspec = "char" | "int"
 // declarator = "*"* ident typeSuffix
 // typeSuffix = "(" funcParams | "[" num "]" typeSuffix | ε
 // funcParams = (param ("," param)*)? ")"
@@ -53,6 +53,7 @@ var_stream_t *global_vars;
 // unary = ("+" | "-" | "*" | "&") unary | postfix
 // postfix = primary ("[" expr "]")*
 // primary = "(" expr ")" | "sizeof" unary | ident funcArgs? | num
+
 // funcall = ident "(" (assign ("," assign)*)? ")"
 static function_t *function_define(token_stream_t *ts, type_t *base_type);
 static type_t *type_suffix(token_stream_t *ts, type_t *ty);
@@ -209,7 +210,7 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	token_t *tok = token_stream_get(ts);
 	while (!token_equal_str(tok, "}"))
 	{
-		if (token_equal_str(tok, "int"))
+		if (token_equal_str(tok, "int") || token_equal_str(tok, "char"))
 		{
 			cur->stmt_list_next = declaration(ts);
 		}
@@ -265,9 +266,15 @@ AST_node_t *declaration(token_stream_t *ts)
 	return node;
 }
 
-// declspec = "int"
+// declspec = "char" | "int"
 type_t *declspec(token_stream_t *ts)
 {
+	token_t *tok = token_stream_get(ts);
+	if (token_equal_str(tok, "char"))
+	{
+		token_stream_advance(ts);
+		return type_char;
+	}
 	EQUAL_SKIP(ts, "int");
 	return type_int;
 }

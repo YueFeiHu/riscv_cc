@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 type_t *type_int = &(type_t){TYPE_INT, 8};
+type_t *type_char = &(type_t){TYPE_CHAR, 1};
 
 
 bool is_integer(type_t *ty)

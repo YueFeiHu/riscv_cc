@@ -5,6 +5,7 @@
 
 typedef enum {
 	TYPE_INT, 
+	TYPE_CHAR, 
 	TYPE_PTR, 
   TYPE_FUNC,
   TYPE_ARRAY,
@@ -28,6 +29,7 @@ typedef struct type {
 struct AST_node;
 
 extern type_t *type_int;
+extern type_t *type_char;
 
 type_t *type_ptr_create(type_t *base);
 type_t *type_func_create(type_t *ret_type);
