@@ -52,7 +52,7 @@ var_stream_t *global_vars;
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-" | "*" | "&") unary | postfix
 // postfix = primary ("[" expr "]")*
-// primary = "(" expr ")" | "sizeof" unary | ident funcArgs? | num
+// primary = "(" expr ")" | "sizeof" unary | ident funcArgs? | str | num
 
 // funcall = ident "(" (assign ("," assign)*)? ")"
 static function_t *function_define(token_stream_t *ts, type_t *base_type);
@@ -626,8 +626,7 @@ static AST_node_t *postfix(token_stream_t *ts)
 	}
 	return node;
 }
-// primary = "(" expr ")" | ident args? | num
-// args = "(" ")"
+// primary = "(" expr ")" | "sizeof" unary | ident funcArgs? | str | num
 AST_node_t *primary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
@@ -649,6 +648,15 @@ AST_node_t *primary(token_stream_t *ts)
 		AST_node_t *node = unary(ts);
 		type_add2node(node);
 		return new_num_node(node->data_type->type_sizeof, tok);
+	}
+
+	if (tok->kind == TK_STR)
+	{
+		var_t *var = var_str_create(tok->str, type_str_create(strlen(tok->str) + 1));
+
+		var_stream_add(global_vars, var);
+		token_stream_advance(ts);
+		return new_var_node(var, tok);
 	}
 
 	if (tok->kind == TK_IDENT)

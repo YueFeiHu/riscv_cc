@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "token_stream.h"
 #include "token.h"
 #include "error.h"
@@ -31,6 +33,22 @@ static int read_punct(char *str)
 	return ispunct(*str) ? 1 : 0;
 }
 
+static token_t *read_str_literal(char *start)
+{
+	char *p = start + 1;
+	while (*p != '\"')
+	{
+		if (*p == '\n' || *p == '\0')
+		{
+			error_at(start, "unclose string literal");
+		}
+		p++;
+	}
+	token_t *tok = token_create(TK_STR, start, p + 1);
+	tok->str = strndup(start + 1, p - start - 1);
+	return tok;
+}
+
 token_stream_t *tokenize(char *p)
 {
 	current_line = p;
@@ -56,6 +74,15 @@ token_stream_t *tokenize(char *p)
 			token_stream_add(ts, cur);
 			continue;
 		}
+
+		if (*p == '"')
+		{
+			cur = read_str_literal(p);
+			token_stream_add(ts, cur);
+			p += cur->len;
+			continue;
+		}
+
 		if (is_ident1(*p))
 		{
 			char *start = p;
@@ -143,6 +170,9 @@ void token_stream_dump(token_stream_t *ts)
             case TK_EOF:
                 printf("EOF\t\n");
                 break;
+						case TK_STR:
+								printf("STR: \t%s\n", head->str);
+								break;
             default:
                 printf("Unknown token kind.\n");
                 break;

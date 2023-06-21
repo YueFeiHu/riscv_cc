@@ -1,6 +1,15 @@
 #include "var.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
+static char *new_unique_name()
+{
+    static int id = 0;
+    char *buf = calloc(1, 20);
+    sprintf(buf, ".L..%d", id++);
+    return buf;
+}
 
 var_t* var_create(const char *name, int name_len, struct type* ty)
 {
@@ -25,6 +34,16 @@ bool var_equal(var_t *lhs, var_t* rhs)
     return false;
 }
 
+// 创建了一个字符串节点，名称是系统生成的，将会被加入到全局变量列表中
+// 内容，也就是字符串内容为str
+var_t *var_str_create(char *str, struct type *ty)
+{
+    char *unique_name = new_unique_name();
+    var_t *var = var_create(unique_name, strlen(unique_name), ty);
+    var->init_data = str;
+    var->is_global = true;
+    return var;
+}
 void var_free(var_t *v)
 {
     free(v->name);

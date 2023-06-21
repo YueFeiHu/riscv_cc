@@ -6,7 +6,7 @@
 #include "type.h"
 #include "var_stream.h"
 #include <stdio.h>
-
+#include <ctype.h>
 extern var_stream_t *global_vars;
 
 static int depth;
@@ -55,14 +55,28 @@ static void load(type_t *ty)
 		return;
 	}
   printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
-  printf("	ld a0, 0(a0)\n");
+	if (ty->type_sizeof == 1)
+	{
+		printf("	lb a0, 0(a0)\n");
+	}
+	else
+	{
+  	printf("	ld a0, 0(a0)\n");
+	}
 }
 
-static void store()
+static void store(type_t *ty)
 {
 	pop("a1");
 	printf("	# 将a0的值, 写入到a1中存放的地址\n");
-  printf("	sd a0, 0(a1)\n");
+  if (ty->type_sizeof == 1)
+	{
+		printf("	sb a0, 0(a1)\n");
+	}
+	else
+	{
+  	printf("	sd a0, 0(a1)\n");
+	}
 }
 
 static int align(int n, int align_num)
@@ -141,7 +155,7 @@ static void gen_expr(AST_node_t *root)
 		gen_var_addr(root->left);
 		push();
 		gen_expr(root->right);
-		store();	
+		store(root->data_type);	
 		return;
 	case AST_NODE_ADDR:
 		gen_var_addr(root->left);
@@ -311,11 +325,31 @@ void emit_data(var_stream_t *vs)
 	{
 		printf("  # 数据段标签\n");
     printf("  .data\n");
-    printf("  .globl %.*s\n",var->name_len, var->name);
-    printf("  # 全局变量%.*s\n",var->name_len, var->name);
-    printf("%.*s:\n", var->name_len, var->name);
-    printf("  # 零填充%d位\n", var->type->type_sizeof);
-    printf("  .zero %d\n", var->type->type_sizeof);
+		if (var->init_data)
+		{
+			printf("%s:\n", var->name);
+			for (int i = 0; i < var->type->type_sizeof; i++)
+			{
+				char c = var->init_data[i];
+				if (isprint(c))
+				{
+          printf("	.byte %d\t# 字符：%c\n", c, c);
+				}
+				else
+				{
+          printf("	.byte %d\n", c);
+				}
+			}
+		}
+		else
+		{
+			printf("  .globl %.*s\n",var->name_len, var->name);
+			printf("  # 全局变量%.*s\n",var->name_len, var->name);
+			printf("%.*s:\n", var->name_len, var->name);
+			printf("  # 零填充%d位\n", var->type->type_sizeof);
+			printf("  .zero %d\n", var->type->type_sizeof);
+		}
+
 		var = var->next;
 	}
 }
@@ -326,6 +360,7 @@ void emit_text(function_t *prog)
 	{
 		printf("\n	# 定义全局%s段\n", fn->func_name);
 		printf("	.global %s\n", fn->func_name);
+		printf("	.text\n");
 		printf("\n# =====%s段开始===============\n", fn->func_name);
 		printf("# %s段标签, 也是程序入口段\n", fn->func_name);
 		printf("%s:\n", fn->func_name);
@@ -353,17 +388,24 @@ void emit_text(function_t *prog)
 		printf("	# sp腾出StackSize大小的栈空间\n");
 		printf("	addi sp, sp, -%d\n", fn->stack_size);
 
+		printf("\n# =====%s段主体===============\n", fn->func_name);
 		int reg_i = 0;
 		var_stream_t *args_vars = fn->func_params;
 		var_t *var = args_vars->head;
 		while (var != NULL)
 		{
-			printf("	# 将%s寄存器的值存入%*.s的栈地址\n", 
+			printf("	# 将%s寄存器的值存入%.*s的栈地址\n", 
 								func_call_args_reg[reg_i], var->name_len +1, var->name);
-      printf("	sd %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
+			if (var->type->type_sizeof == 1)
+			{
+      	printf("	sb %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
+			}
+			else
+			{
+      	printf("	sd %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
+			}
 			var = var->next;
 		}
-		printf("\n# =====%s段主体===============\n", fn->func_name);
 		current_func = fn;
 		gen_stmt(fn->func_body);
 		// Epilogue，后语

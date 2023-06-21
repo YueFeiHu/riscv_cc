@@ -7,6 +7,7 @@ typedef enum{
 	TK_PUNCT,
 	TK_NUM,
 	TK_IDENT,
+	TK_STR,
 	TK_KEYWORD,
 	TK_EOF,
 }TokenKind;
@@ -18,6 +19,7 @@ struct token{
 	token_t *next;
 	int val;
 	const char *loc;
+	char *str; // string literal 包括 '\0'
 	int len;
 };
 
@@ -28,6 +30,8 @@ int token_get_val(const token_t *tok);
 char *token_get_ident(const token_t *tok);
 
 bool token_equal_str(const token_t *tok, const char *str);
+
+bool token_is_keyword(const token_t *tok);
 
 
 #endif

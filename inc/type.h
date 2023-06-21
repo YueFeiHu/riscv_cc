@@ -34,6 +34,7 @@ extern type_t *type_char;
 type_t *type_ptr_create(type_t *base);
 type_t *type_func_create(type_t *ret_type);
 type_t *type_array_create(type_t *base, int len);
+type_t *type_str_create(int len);
 type_t *type_copy(type_t *ty);
 
 bool is_integer(type_t *ty);

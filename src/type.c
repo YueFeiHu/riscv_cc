@@ -125,6 +125,16 @@ type_t *type_array_create(type_t *base_type, int len)
     return ty;
 }
 
+type_t *type_str_create(int len)
+{
+    type_t *ty = calloc(1, sizeof(type_t));
+    ty->kind = TYPE_ARRAY;
+    ty->base_type = type_char;
+    ty->array_len = len;
+    ty->type_sizeof = len;
+    return ty;
+}
+
 type_t *type_copy(type_t *ty)
 {
     type_t *ret = calloc(1, sizeof(type_t));
