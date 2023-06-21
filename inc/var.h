@@ -9,6 +9,7 @@ typedef struct var
     char *name;
     int name_len;
     int offset;
+    bool is_global;
     struct type *type;
     struct var *next;
 }var_t;

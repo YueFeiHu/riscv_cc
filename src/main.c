@@ -24,9 +24,9 @@ int main(int argc, char **argv)
 	}
 	token_stream_t *ts = tokenize(argv[1]);
 #else
-	char *str = "int main() { int x[2][3]; int *y=x; *y=0; return **x; }";
-	char *str2 = "int main() { return add2(3,4); } int add2(int x, int y) { return x+y; } ";
-	token_stream_t *ts = tokenize(str);
+	char *str = "int x; int y; int main() { x=3; y=4; return x+y; }";
+	char *str2 = "int main() { return sub2(4,3); } int sub2(int x, int y) { return x-y; }";
+	token_stream_t *ts = tokenize(str2);
 	token_stream_dump(ts);
 #endif
 	struct function *func = parse(ts);

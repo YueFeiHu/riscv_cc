@@ -7,6 +7,8 @@
 #include "var_stream.h"
 #include <stdio.h>
 
+extern var_stream_t *global_vars;
+
 static int depth;
 static int label_i;
 static function_t *current_func;
@@ -21,6 +23,8 @@ static int align(int n, int align_num);
 static void assign_var_offset(function_t *prog);
 static void gen_expr(AST_node_t *root);
 static void pre_gen_function();
+static void emit_data(var_stream_t* vs);
+static void emit_text(function_t * prog);
 
 static int label_index(void)
 {
@@ -28,7 +32,7 @@ static int label_index(void)
 	return cnt++;
 }
 
-void push()
+static void push()
 {
 	printf("	# 压栈, 将a0的值存入栈顶\n");
 	printf("	addi sp, sp, -8\n");
@@ -36,7 +40,7 @@ void push()
 	depth++;
 }
 
-void pop(char *reg)
+static void pop(char *reg)
 {
 	printf("	# 弹栈，将栈顶的值存入%s\n", reg);
 	printf("	ld %s, 0(sp)\n", reg);
@@ -96,8 +100,16 @@ static void gen_var_addr(AST_node_t *node)
 {
 	if (node->kind == AST_NODE_VAR)
 	{
-		printf("	# 获取变量%.*s的栈内地址为%d(fp)\n", node->var->name_len, node->var->name, node->var->offset);
-		printf("	addi a0, fp, %d\n", node->var->offset);
+		if (node->var->is_global)
+		{
+			printf("	# 获取全局变量%.*s的地址\n", node->var->name_len, node->var->name);
+      printf("	la a0, %.*s\n", node->var->name_len, node->var->name);
+		}
+		else
+		{
+			printf("	# 获取变量%.*s的栈内地址为%d(fp)\n", node->var->name_len, node->var->name, node->var->offset);
+			printf("	addi a0, fp, %d\n", node->var->offset);
+		}
 		return;
 	}
 	else if (node->kind == AST_NODE_DEREF)
@@ -292,10 +304,24 @@ static void gen_stmt(AST_node_t *root)
 	error_tok(root->end_tok, "invalid statement");
 }
 
-void code_gen(function_t *prog)
+void emit_data(var_stream_t *vs)
 {
-	assign_var_offset(prog);
-	printf("	.text\n");
+	var_t *var = vs->head;
+	while (var)
+	{
+		printf("  # 数据段标签\n");
+    printf("  .data\n");
+    printf("  .globl %.*s\n",var->name_len, var->name);
+    printf("  # 全局变量%.*s\n",var->name_len, var->name);
+    printf("%.*s:\n", var->name_len, var->name);
+    printf("  # 零填充%d位\n", var->type->type_sizeof);
+    printf("  .zero %d\n", var->type->type_sizeof);
+		var = var->next;
+	}
+}
+
+void emit_text(function_t *prog)
+{
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
 		printf("\n	# 定义全局%s段\n", fn->func_name);
@@ -356,4 +382,11 @@ void code_gen(function_t *prog)
 		printf("	addi sp, sp, 16\n");
 		printf("	ret\n");
 	}
+}
+
+void code_gen(function_t *prog)
+{
+	assign_var_offset(prog);
+	emit_data(global_vars);
+	emit_text(prog);
 }
