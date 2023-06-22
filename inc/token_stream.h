@@ -29,4 +29,6 @@ bool token_stream_consume(token_stream_t *ts, char *str);
 
 struct token* token_stream_peek_next(token_stream_t *ts);
 
+token_stream_t *tokenize_file(char *file_path);
+
 #endif

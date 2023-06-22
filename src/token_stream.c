@@ -7,9 +7,10 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <errno.h>
 
 char *current_line;
-
+char *current_file;
 static bool start_with(const char *p, const char *str)
 {
 	return strncmp(p, str, strlen(str)) == 0;
@@ -77,6 +78,49 @@ static char *str_literal_end(char *p)
 	return p;
 }
 
+static char *read_file(char *path)
+{
+	FILE *fp;
+	if (strncmp(path, "-", 1) == 0)
+	{
+		fp = stdin;
+	}
+	else
+	{
+		fp = fopen(path, "r");
+		if (!fp)
+		{
+			error_log("cannot open %s: %s", path, strerror(errno));
+		}
+	}
+	char *buf;
+	size_t buf_len;
+	FILE *out = open_memstream(&buf, &buf_len);
+
+	while (true)
+	{
+		char buf2[4096] = {};
+		int n = fread(buf2, 1, sizeof(buf2), fp);
+		if (n == 0)
+		{
+			break;
+		}
+		fwrite(buf2, 1, n, out);
+	}
+	if (fp != stdin)
+	{
+		fclose(fp);
+	}
+	fflush(out);
+	if (buf_len == 0 || buf[buf_len - 1] != '\n')
+	{
+		fputc('\n', out);
+	}
+	fputc('\0', out);
+	fclose(out);
+	return buf;
+}
+
 static token_t *read_str_literal(char *start)
 {
 	// 读取到字符串右边的 "
@@ -103,66 +147,6 @@ static token_t *read_str_literal(char *start)
 	token_t *tok = token_create(TK_STR, start, end + 1);
 	tok->str = buf;
 	return tok;
-}
-
-token_stream_t *tokenize(char *p)
-{
-	current_line = p;
-	token_stream_t *ts = token_stream_create();
-
-	token_t *cur;
-	long num;
-
-	while (*p)
-	{
-		if (isspace(*p))
-		{
-			p++;
-			continue;
-		}
-		
-		if (isdigit(*p))
-		{
-			const char *start = p;
-			num = strtol(p, &p, 10);
-			cur = token_create(TK_NUM, start, p);
-			cur->val = num;
-			token_stream_add(ts, cur);
-			continue;
-		}
-
-		if (*p == '"')
-		{
-			cur = read_str_literal(p);
-			token_stream_add(ts, cur);
-			p += cur->len;
-			continue;
-		}
-
-		if (is_ident1(*p))
-		{
-			char *start = p;
-			do
-			{
-				++p;
-			}while(is_ident2(*p));
-			cur = token_create(TK_IDENT, start, p);
-			token_stream_add(ts, cur);
-			continue;
-		}
-		int punct_len = read_punct(p);
-		if (punct_len)
-		{
-			cur = token_create(TK_PUNCT, p, p + punct_len);
-			token_stream_add(ts, cur);
-			p += punct_len;
-			continue;
-		}
-		error_at(p, "invalid token: %c", *p);
-	}
-	cur = token_create(TK_EOF, p, p);
-	token_stream_add(ts, cur);
-	return ts;
 }
 
 token_stream_t *token_stream_create()
@@ -254,4 +238,70 @@ token_t* token_stream_peek_next(token_stream_t *ts)
 		return ts->tokens->next;
 	}
 	return NULL;
+}
+
+token_stream_t *tokenize(char *p)
+{
+	current_line = p;
+	token_stream_t *ts = token_stream_create();
+
+	token_t *cur;
+	long num;
+
+	while (*p)
+	{
+		if (isspace(*p))
+		{
+			p++;
+			continue;
+		}
+		
+		if (isdigit(*p))
+		{
+			const char *start = p;
+			num = strtol(p, &p, 10);
+			cur = token_create(TK_NUM, start, p);
+			cur->val = num;
+			token_stream_add(ts, cur);
+			continue;
+		}
+
+		if (*p == '"')
+		{
+			cur = read_str_literal(p);
+			token_stream_add(ts, cur);
+			p += cur->len;
+			continue;
+		}
+
+		if (is_ident1(*p))
+		{
+			char *start = p;
+			do
+			{
+				++p;
+			}while(is_ident2(*p));
+			cur = token_create(TK_IDENT, start, p);
+			token_stream_add(ts, cur);
+			continue;
+		}
+		int punct_len = read_punct(p);
+		if (punct_len)
+		{
+			cur = token_create(TK_PUNCT, p, p + punct_len);
+			token_stream_add(ts, cur);
+			p += punct_len;
+			continue;
+		}
+		error_at(p, "invalid token: %c", *p);
+	}
+	cur = token_create(TK_EOF, p, p);
+	token_stream_add(ts, cur);
+	return ts;
+}
+
+token_stream_t *tokenize_file(char *file_path)
+{
+	current_file = file_path;
+	return tokenize(read_file(file_path));
 }
