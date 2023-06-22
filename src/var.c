@@ -1,4 +1,5 @@
 #include "var.h"
+#include "str_util.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -6,9 +7,7 @@
 static char *new_unique_name()
 {
     static int id = 0;
-    char *buf = calloc(1, 20);
-    sprintf(buf, ".L..%d", id++);
-    return buf;
+    return format(".L..%d", id++);
 }
 
 var_t* var_create(const char *name, int name_len, struct type* ty)
