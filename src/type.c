@@ -10,11 +10,19 @@ type_t *type_char = &(type_t){TYPE_CHAR, 1};
 
 bool is_integer(type_t *ty)
 {
-    return ty->kind == TYPE_INT;
+    if (ty)
+    {
+        return ty->kind == TYPE_INT;
+    }
+    return false;
 }
 bool is_pointer(type_t *ty)
 {
-    return ty->kind == TYPE_PTR;
+    if (ty)
+    {
+        return ty->kind == TYPE_PTR;
+    }
+    return false;
 }
 void type_add2node(AST_node_t *node)
 {
@@ -92,6 +100,22 @@ void type_add2node(AST_node_t *node)
         {
             node->data_type = node->left->data_type->base_type;
         }
+        return;
+    case AST_NODE_EPXR_STMT:
+        if (node->block_body)
+        {
+            AST_node_t *stmt = node->block_body;
+            while (stmt->stmt_list_next)
+            {
+                stmt = stmt->stmt_list_next;
+            }
+            if (stmt->kind == AST_NODE_EPXR_STMT)
+            {
+                node->data_type = stmt->left->data_type;
+            }
+            return;
+        }
+        // error_tok(node->end_tok, "statement expression returning void is not supported");
         return;
     default:
         break;

@@ -17,11 +17,11 @@ static char *func_call_args_reg[] = {"a0", "a1", "a2", "a3", "a4", "a5"};
 static void push();
 static void pop(char *reg);
 static void load(type_t *ty);
-static void store();
+static void store(type_t *ty);
 static void gen_expr(AST_node_t *root);
 static int align(int n, int align_num);
 static void assign_var_offset(function_t *prog);
-static void gen_expr(AST_node_t *root);
+static void gen_stmt(AST_node_t *root);
 static void pre_gen_function();
 static void emit_data(var_stream_t* vs);
 static void emit_text(function_t * prog);
@@ -163,6 +163,12 @@ static void gen_expr(AST_node_t *root)
 	case AST_NODE_DEREF:
 		gen_expr(root->left);
 		load(root->data_type);
+		return;
+	case AST_NODE_EPXR_STMT:
+		for (AST_node_t *cur = root->block_body; cur; cur = cur->stmt_list_next)
+		{
+			gen_stmt(cur);
+		}
 		return;
 	case AST_NODE_FUNC_CALL:
 	{

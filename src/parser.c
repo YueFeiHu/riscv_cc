@@ -52,9 +52,12 @@ var_stream_t *global_vars;
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-" | "*" | "&") unary | postfix
 // postfix = primary ("[" expr "]")*
-// primary = "(" expr ")" | "sizeof" unary | ident funcArgs? | str | num
-
-// funcall = ident "(" (assign ("," assign)*)? ")"
+// primary = "(" "{" stmt+ "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | ident funcArgs?
+//         | str
+//         | num
 static function_t *function_define(token_stream_t *ts, type_t *base_type);
 static type_t *type_suffix(token_stream_t *ts, type_t *ty);
 static AST_node_t *compound_stmt(token_stream_t *ts);
@@ -220,11 +223,11 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 		}
 		cur = cur->stmt_list_next;
 		tok = token_stream_get(ts);
+		type_add2node(cur);
 	}
 	token_stream_advance(ts);
 	AST_node_t *node = new_AST_node(AST_NODE_BLOCK, tok);
 	node->block_body = head.stmt_list_next;
-	type_add2node(node);
 	return node;
 }
 
@@ -626,10 +629,27 @@ static AST_node_t *postfix(token_stream_t *ts)
 	}
 	return node;
 }
-// primary = "(" expr ")" | "sizeof" unary | ident funcArgs? | str | num
+// primary = "(" "{" stmt+ "}" ")"
+//         | "(" expr ")"
+//         | "sizeof" unary
+//         | ident funcArgs?
+//         | str
+//         | num
 AST_node_t *primary(token_stream_t *ts)
 {
 	token_t *tok = token_stream_get(ts);
+	if (token_equal_str(tok, "(") && 
+		  token_equal_str(token_stream_peek_next(ts), "{"))
+	{
+		AST_node_t *node = new_AST_node(AST_NODE_EPXR_STMT, tok);
+		token_stream_advance(ts);
+		token_stream_advance(ts);
+		node->block_body = compound_stmt(ts)->block_body;
+		// node->data_type = type_int;
+		EQUAL_SKIP(ts, ")");
+		return node;
+	}
+
 	if (token_equal_str(tok, "("))
 	{
 		token_stream_advance(ts);
