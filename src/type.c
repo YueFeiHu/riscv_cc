@@ -16,6 +16,16 @@ bool is_integer(type_t *ty)
     }
     return false;
 }
+
+bool is_char(type_t *ty)
+{
+    if (ty)
+    {
+        return ty->kind == TYPE_CHAR;
+    }
+    return false;
+}
+
 bool is_pointer(type_t *ty)
 {
     if (ty)

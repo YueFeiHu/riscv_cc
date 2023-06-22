@@ -9,6 +9,7 @@
 #include "function.h"
 #include "type.h"
 #include "log.h"
+#include "scope.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,6 +26,7 @@
 
 var_stream_t *local_vars;
 var_stream_t *global_vars;
+scope_t *scp;
 
 // program = (functionDefinition | globalVariable)*
 // functionDefinition = declspec declarator "{" compoundStmt*
@@ -91,6 +93,21 @@ static bool is_function(token_stream_t *ts, type_t **base_ty)
 	return (*base_ty)->kind == TYPE_FUNC;
 }
 
+static var_t *find_var(token_t *tok)
+{
+	for (scope_t *cur_scp = scp; cur_scp; cur_scp = cur_scp->next)
+	{
+		for (var_scope_t *vs_scp = cur_scp->var_scopes; vs_scp; vs_scp = vs_scp->next)
+		{
+			if (token_equal_str(tok, vs_scp->scope_name))
+			{
+				return vs_scp->var;
+			}
+		}
+	}
+	return NULL;
+}
+
 static void global_vars_add(token_stream_t *ts, type_t *ty)
 {
 
@@ -116,6 +133,7 @@ static void global_vars_add(token_stream_t *ts, type_t *ty)
 // program = (functionDefinition | globalVariable)*
 function_t *parse(token_stream_t *ts)
 {
+	scp = scope_create();
 	global_vars = var_stream_create();
 	function_t head;
 	function_t *cur = &head;
@@ -124,9 +142,9 @@ function_t *parse(token_stream_t *ts)
 	while (tok->kind != TK_EOF)
 	{
 		type_t *base_type = declspec(ts);
+		local_vars = var_stream_create();
 		if (is_function(ts, &base_type))
 		{
-			local_vars = var_stream_create();
 			cur->next_function = function_define(ts, base_type);
 			cur = cur->next_function;
 		}
@@ -145,6 +163,7 @@ static function_t *function_define(token_stream_t *ts, type_t *ty)
 
 	// type_t *ty = declspec(ts);
 	// type_t* ty = declarator(ts, base_type);
+	scope_enter(&scp);
 	function_t *func = calloc(1, sizeof(function_t));
 	func->func_name = token_get_ident(ty->name_token);
 	func->func_params = local_vars;
@@ -152,7 +171,7 @@ static function_t *function_define(token_stream_t *ts, type_t *ty)
 	EQUAL_SKIP(ts, "{");
 	func->func_body = compound_stmt(ts);
 	func->local_vars = local_vars;
-
+	scope_leave(&scp);
 	return func;
 }
 
@@ -171,7 +190,7 @@ static type_t *func_params(token_stream_t *ts, type_t *ty)
 		}
 		type_t *base_type = declspec(ts);
 		type_t *real_type = declarator(ts, base_type);
-		var_stream_add_tail(local_vars, var_create(token_get_ident(real_type->name_token),
+		var_stream_add(local_vars, var_create(token_get_ident(real_type->name_token),
 																			 real_type->name_token->len, real_type));
 		tok = token_stream_get(ts);
 		cur->next = real_type;
@@ -210,6 +229,7 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 {
 	AST_node_t head;
 	AST_node_t *cur = &head;
+	scope_enter(&scp);
 	token_t *tok = token_stream_get(ts);
 	while (!token_equal_str(tok, "}"))
 	{
@@ -225,6 +245,7 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 		tok = token_stream_get(ts);
 		type_add2node(cur);
 	}
+	scope_leave(&scp);
 	token_stream_advance(ts);
 	AST_node_t *node = new_AST_node(AST_NODE_BLOCK, tok);
 	node->block_body = head.stmt_list_next;
@@ -539,6 +560,11 @@ AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok)
 		return new_binary(AST_NODE_SUB, left, right, tok);
 	}
 
+	if (is_char(left->data_type) && is_char(right->data_type))
+	{
+		return new_binary(AST_NODE_SUB, left, right, tok);
+	}
+
 	if (is_pointer(left->data_type) && is_integer(right->data_type))
 	{
 		right = new_binary(AST_NODE_MUL, right, new_num_node(8, tok), tok);
@@ -685,15 +711,10 @@ AST_node_t *primary(token_stream_t *ts)
 		{
 			return func_call(ts);
 		}
-		var_t *var = var_stream_find(local_vars, tok->loc);
+		var_t *var = find_var(tok);
 		if (!var)
 		{
-			var = var_stream_find(global_vars, tok->loc);
-			if (!var)
-			{
-				var = var_create(tok->loc, tok->len, type_int);
-				var_stream_add(local_vars, var);
-			}
+			error_tok(tok, "ss");
 		}
 		AST_node_t *var_node = new_var_node(var, tok);
 		token_stream_advance(ts);

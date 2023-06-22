@@ -1,8 +1,11 @@
 #include "var.h"
 #include "str_util.h"
+#include "scope.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+extern scope_t *scp;
 
 static char *new_unique_name()
 {
@@ -19,7 +22,7 @@ var_t* var_create(const char *name, int name_len, struct type* ty)
     new_var->type = ty;
     new_var->offset = 0;
     new_var->next = NULL;
-
+    scope_push_var(&scp, new_var->name, new_var);
     return new_var;
 }
 

@@ -39,6 +39,7 @@ type_t *type_copy(type_t *ty);
 
 bool is_integer(type_t *ty);
 bool is_pointer(type_t *ty);
+bool is_char(type_t *ty);
 bool is_array(type_t *ty);
 void type_add2node(struct AST_node *node);
 
