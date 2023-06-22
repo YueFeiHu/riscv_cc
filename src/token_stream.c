@@ -33,19 +33,75 @@ static int read_punct(char *str)
 	return ispunct(*str) ? 1 : 0;
 }
 
-static token_t *read_str_literal(char *start)
+static int read_escaped_char(char *p)
 {
-	char *p = start + 1;
+	switch (*p)
+	{
+	case 'a':	// 响铃（警报）
+		return '\a'; 
+	case 'b': // 退格
+    return '\b';
+  case 't': // 水平制表符，tab
+    return '\t';
+  case 'n': // 换行
+    return '\n';
+  case 'v': // 垂直制表符
+    return '\v';
+  case 'f': // 换页
+    return '\f';
+  case 'r': // 回车
+    return '\r';
+  // 属于GNU C拓展
+  case 'e': // 转义符
+    return 27;
+  default: // 默认将原字符返回
+    return *p;
+	}
+}
+
+static char *str_literal_end(char *p)
+{
+	char *start = p;
 	while (*p != '\"')
 	{
 		if (*p == '\n' || *p == '\0')
 		{
 			error_at(start, "unclose string literal");
 		}
+		if (*p == '\\')
+		{
+			p++;
+		}
 		p++;
 	}
-	token_t *tok = token_create(TK_STR, start, p + 1);
-	tok->str = strndup(start + 1, p - start - 1);
+	return p;
+}
+
+static token_t *read_str_literal(char *start)
+{
+	// 读取到字符串右边的 "
+	char *end = str_literal_end(start + 1);
+	// 定义一个与字符串字面量内字符数+1的Buf
+  // 用来存储最大位数的字符串字面量
+	char *buf = calloc(1, end - start);
+  // 实际的字符位数，一个转义字符为1位
+	int len = 0;
+	char *p = start + 1;
+	while (p < end)
+	{
+		if (*p == '\\')
+		{
+			buf[len++] = read_escaped_char(p+1);
+			p = p + 2;
+		}
+		else
+		{
+			buf[len++] = *p++;
+		}
+	}
+	// Token这里需要包含带双引号的字符串字面量
+	token_t *tok = token_create(TK_STR, start, end + 1);
+	tok->str = buf;
 	return tok;
 }
 

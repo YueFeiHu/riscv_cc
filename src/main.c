@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 	}
 	token_stream_t *ts = tokenize(argv[1]);
 #else
-	char *str = "int main() { char x=1; return x; }";
+	char *str = "int main() { return \"\ax\ny\"[1]; }";
 	char *str2 = "int main() { return sizeof(\"\"); }";
 	token_stream_t *ts = tokenize(str);
 	token_stream_dump(ts);
