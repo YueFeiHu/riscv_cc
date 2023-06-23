@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 #ifndef DEBUG
 	parse_args(argc, argv);
 	// 没有从文件中读取，先这样吧
-	token_stream_t *ts = tokenize_file(input);
+	token_stream_t *ts = tokenize(input);
 #else
 	char *str = "int main() { return sub_char(7, 3, 3); } int sub_char(char a, char b, char c) { return a-b-c; }";
 	char *str2 = "int main() { int x=2; { int x=3; } return x; }";

@@ -251,6 +251,25 @@ token_stream_t *tokenize(char *p)
 
 	while (*p)
 	{
+		    // 跳过行注释
+    if (start_with(p, "//")) 
+		{
+      p += 2;
+      while (*p != '\n')
+        p++;
+      continue;
+    }
+
+    // 跳过块注释
+    if (start_with(p, "/*")) 
+		{
+      // 查找第一个"*/"的位置
+      char *q = strstr(p + 2, "*/");
+      if (!q)
+        error_at(p, "unclosed block comment");
+      p = q + 2;
+      continue;
+    }
 		if (isspace(*p))
 		{
 			p++;
