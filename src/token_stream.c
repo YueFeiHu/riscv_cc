@@ -84,8 +84,6 @@ static char *read_file(char *path)
 	FILE *fp;
 	if (strncmp(path, "-", 1) == 0)
 	{
-		char *str = "int main() { return sub_char(7, 3, 3); } int sub_char(char a, char b, char c) { return a-b-c; }";
-		return str;
 		fp = stdin;
 	}
 	else

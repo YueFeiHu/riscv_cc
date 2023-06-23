@@ -10,7 +10,7 @@
 #include <stdarg.h>
 
 extern var_stream_t *global_vars;
-
+static FILE *output_file;
 static int depth;
 static int label_i;
 static function_t *current_func;
@@ -32,9 +32,9 @@ static void emit_text(function_t * prog);
 static void print_ln(char *fmt, ...) {
   va_list va;
   va_start(va, fmt);
-  vprintf(fmt, va);
+  vfprintf(output_file, fmt, va);
   va_end(va);
-  printf("\n");
+  fprintf(output_file, "\n");
 }
 
 static int label_index(void)
@@ -443,8 +443,9 @@ void emit_text(function_t *prog)
 	}
 }
 
-void code_gen(function_t *prog)
+void code_gen(function_t *prog, FILE *out)
 {
+	output_file = out;
 	assign_var_offset(prog);
 	emit_data(global_vars);
 	emit_text(prog);
