@@ -714,7 +714,7 @@ AST_node_t *primary(token_stream_t *ts)
 		var_t *var = find_var(tok);
 		if (!var)
 		{
-			error_tok(tok, "ss");
+			error_tok(tok, "undefine var");
 		}
 		AST_node_t *var_node = new_var_node(var, tok);
 		token_stream_advance(ts);

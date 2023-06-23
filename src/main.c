@@ -17,16 +17,17 @@ int main(int argc, char **argv)
 	// log_add_fp(fp, 0);
 
 #ifndef DEBUG
-	if (argc != 2)
+	if (argc < 2)
 	{
-		fprintf(stderr, "%s", "argc != 2");
+		fprintf(stderr, "%s", "argc < 2");
 		return 1;
 	}
+	// 没有从文件中读取，先这样吧
 	token_stream_t *ts = tokenize(argv[1]);
 #else
 	char *str = "int main() { return sub_char(7, 3, 3); } int sub_char(char a, char b, char c) { return a-b-c; }";
 	char *str2 = "int main() { int x=2; { int x=3; } return x; }";
-	token_stream_t *ts = tokenize(str);
+	token_stream_t *ts = tokenize_file(argv[1]);
 	token_stream_dump(ts);
 #endif
 	struct function *func = parse(ts);

@@ -1,3 +1,4 @@
+
 #!/bin/bash
 RISCV=/home/hyf/riscv
 TEST_DIR=./tests
@@ -11,11 +12,13 @@ int add6(int a, int b, int c, int d, int e, int f) {
   return a+b+c+d+e+f;
 }
 EOF
-
 assert() {
   expected="$1"
   input="$2"
 
+  # ./rvcc "$input" > $TEST_DIR/tmp.s || exit
+  # 不知道为什么不行，字符串明明都读取进去了
+  # echo "$input" | ./rvcc - > $TEST_DIR/tmp.s || exit
   ./rvcc "$input" > $TEST_DIR/tmp.s || exit
   $RISCV/bin/riscv64-unknown-linux-gnu-gcc -static -o $TEST_DIR/tmp $TEST_DIR/tmp.s tmp2.o
   $RISCV/bin/qemu-riscv64 -L $RISCV/sysroot $TEST_DIR/tmp

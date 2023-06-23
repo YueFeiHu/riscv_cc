@@ -10,8 +10,6 @@
 
 static char *keywords[] = {"return", "if", "else", "for", "while", "int", "sizeof", "char"};
 
-
-
 bool token_equal_str(const token_t *tok, const char *str)
 {
 	return memcmp(tok->loc, str, tok->len) == 0 && str[tok->len] == '\0';

@@ -9,8 +9,9 @@
 #include <ctype.h>
 #include <errno.h>
 
-char *current_line;
+char *current_input;
 char *current_file;
+
 static bool start_with(const char *p, const char *str)
 {
 	return strncmp(p, str, strlen(str)) == 0;
@@ -83,6 +84,8 @@ static char *read_file(char *path)
 	FILE *fp;
 	if (strncmp(path, "-", 1) == 0)
 	{
+		char *str = "int main() { return sub_char(7, 3, 3); } int sub_char(char a, char b, char c) { return a-b-c; }";
+		return str;
 		fp = stdin;
 	}
 	else
@@ -99,7 +102,7 @@ static char *read_file(char *path)
 
 	while (true)
 	{
-		char buf2[4096] = {};
+		char buf2[4096];
 		int n = fread(buf2, 1, sizeof(buf2), fp);
 		if (n == 0)
 		{
@@ -242,7 +245,7 @@ token_t* token_stream_peek_next(token_stream_t *ts)
 
 token_stream_t *tokenize(char *p)
 {
-	current_line = p;
+	current_input = p;
 	token_stream_t *ts = token_stream_create();
 
 	token_t *cur;
