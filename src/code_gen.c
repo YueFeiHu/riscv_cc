@@ -7,6 +7,8 @@
 #include "var_stream.h"
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
+
 extern var_stream_t *global_vars;
 
 static int depth;
@@ -26,6 +28,15 @@ static void pre_gen_function();
 static void emit_data(var_stream_t* vs);
 static void emit_text(function_t * prog);
 
+// 输出字符串并换行
+static void print_ln(char *fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  vprintf(fmt, va);
+  va_end(va);
+  printf("\n");
+}
+
 static int label_index(void)
 {
 	static int cnt = 1;
@@ -34,17 +45,17 @@ static int label_index(void)
 
 static void push()
 {
-	printf("	# 压栈, 将a0的值存入栈顶\n");
-	printf("	addi sp, sp, -8\n");
-	printf("	sd a0, 0(sp)\n");
+	print_ln("	# 压栈, 将a0的值存入栈顶");
+	print_ln("	addi sp, sp, -8");
+	print_ln("	sd a0, 0(sp)");
 	depth++;
 }
 
 static void pop(char *reg)
 {
-	printf("	# 弹栈，将栈顶的值存入%s\n", reg);
-	printf("	ld %s, 0(sp)\n", reg);
-	printf("	addi sp, sp, 8\n");
+	print_ln("	# 弹栈，将栈顶的值存入%s", reg);
+	print_ln("	ld %s, 0(sp)", reg);
+	print_ln("	addi sp, sp, 8");
 	depth--;
 }
 
@@ -54,28 +65,28 @@ static void load(type_t *ty)
 	{
 		return;
 	}
-  printf("	# 读取a0中存放的地址, 得到的值存入a0\n");
+  print_ln("	# 读取a0中存放的地址, 得到的值存入a0");
 	if (ty->type_sizeof == 1)
 	{
-		printf("	lb a0, 0(a0)\n");
+		print_ln("	lb a0, 0(a0)");
 	}
 	else
 	{
-  	printf("	ld a0, 0(a0)\n");
+  	print_ln("	ld a0, 0(a0)");
 	}
 }
 
 static void store(type_t *ty)
 {
 	pop("a1");
-	printf("	# 将a0的值, 写入到a1中存放的地址\n");
+	print_ln("	# 将a0的值, 写入到a1中存放的地址");
   if (ty->type_sizeof == 1)
 	{
-		printf("	sb a0, 0(a1)\n");
+		print_ln("	sb a0, 0(a1)");
 	}
 	else
 	{
-  	printf("	sd a0, 0(a1)\n");
+  	print_ln("	sd a0, 0(a1)");
 	}
 }
 
@@ -116,13 +127,13 @@ static void gen_var_addr(AST_node_t *node)
 	{
 		if (node->var->is_global)
 		{
-			printf("	# 获取全局变量%.*s的地址\n", node->var->name_len, node->var->name);
-      printf("	la a0, %.*s\n", node->var->name_len, node->var->name);
+			print_ln("	# 获取全局变量%.*s的地址", node->var->name_len, node->var->name);
+      print_ln("	la a0, %.*s", node->var->name_len, node->var->name);
 		}
 		else
 		{
-			printf("	# 获取变量%.*s的栈内地址为%d(fp)\n", node->var->name_len, node->var->name, node->var->offset);
-			printf("	addi a0, fp, %d\n", node->var->offset);
+			print_ln("	# 获取变量%.*s的栈内地址为%d(fp)", node->var->name_len, node->var->name, node->var->offset);
+			print_ln("	addi a0, fp, %d", node->var->offset);
 		}
 		return;
 	}
@@ -139,13 +150,13 @@ static void gen_expr(AST_node_t *root)
 	switch (root->kind)
 	{
 	case AST_NODE_NUM:
-		printf("	# 将%d加载到a0中\n", root->val);
-		printf("	li a0,   %d\n", root->val);
+		print_ln("	# 将%d加载到a0中", root->val);
+		print_ln("	li a0,   %d", root->val);
 		return;
 	case AST_NODE_NEG:
 		gen_expr(root->left);
-		printf("	# 对a0值进行取反\n");
-		printf("	neg a0, a0\n");
+		print_ln("	# 对a0值进行取反");
+		print_ln("	neg a0, a0");
 		return;
 	case AST_NODE_VAR:
 		gen_var_addr(root);
@@ -185,8 +196,8 @@ static void gen_expr(AST_node_t *root)
 		{
 			pop(func_call_args_reg[i]);
 		}
-		printf("\n  # 调用函数%s\n", root->func_call_name);
-		printf("	call %s\n", root->func_call_name);
+		print_ln("  # 调用函数%s", root->func_call_name);
+		print_ln("	call %s", root->func_call_name);
 		return;
 	}
 	default:
@@ -201,42 +212,42 @@ static void gen_expr(AST_node_t *root)
 	switch (root->kind)
 	{
 	case AST_NODE_ADD:
-		printf("	# a0+a1, 结果写入a0\n");
-		printf("	add a0, a0, a1\n");
+		print_ln("	# a0+a1, 结果写入a0");
+		print_ln("	add a0, a0, a1");
 		return;
 	case AST_NODE_SUB:
-		printf("	# a0-a1, 结果写入a0\n");
-		printf("	sub a0, a0, a1\n");
+		print_ln("	# a0-a1, 结果写入a0");
+		print_ln("	sub a0, a0, a1");
 		return;
 	case AST_NODE_MUL:
-		printf("	# a0*a1,结果写入a0\n");
-		printf("	mul a0, a0, a1\n");
+		print_ln("	# a0*a1,结果写入a0");
+		print_ln("	mul a0, a0, a1");
 		return;
 	case AST_NODE_DIV:
-		printf("	# a0/a1, 结果写入a0\n");
-		printf("	div a0, a0, a1\n");
+		print_ln("	# a0/a1, 结果写入a0");
+		print_ln("	div a0, a0, a1");
 		return;
 	case AST_NODE_EQ:
 	case AST_NODE_NE:
-		printf("	# 判断是否a0%sa1\n", root->kind == AST_NODE_EQ ? "=" : "≠");
-		printf("	xor a0, a0, a1\n");
+		print_ln("	# 判断是否a0%sa1", root->kind == AST_NODE_EQ ? "=" : "≠");
+		print_ln("	xor a0, a0, a1");
 		if (root->kind == AST_NODE_EQ)
 		{
-			printf("	seqz a0, a0\n");
+			print_ln("	seqz a0, a0");
 		}
 		else
 		{
-			printf("	snez a0, a0\n");
+			print_ln("	snez a0, a0");
 		}
 		return;
 	case AST_NODE_LT:
-		printf("	# 判断a0<a1\n");
-		printf("	slt a0, a0, a1\n");
+		print_ln("	# 判断a0<a1");
+		print_ln("	slt a0, a0, a1");
 		return;
 	case AST_NODE_LE:
-		printf("	# 判断是否a0≤a1\n");
-		printf("	slt a0, a1, a0\n");
-		printf("	xori a0, a0, 1\n");
+		print_ln("	# 判断是否a0≤a1");
+		print_ln("	slt a0, a1, a0");
+		print_ln("	xori a0, a0, 1");
 		return;
 	default:
 		break;
@@ -251,64 +262,64 @@ static void gen_stmt(AST_node_t *root)
 	case AST_NODE_IF:
 	{
 		label_i = label_index();
-		printf("\n# =====分支语句%d==============\n", label_i);
-		printf("\n# Cond表达式%d\n", label_i);
+		print_ln("# =====分支语句%d==============", label_i);
+		print_ln("# Cond表达式%d", label_i);
 		gen_expr(root->if_condition);
-		printf("  # 若a0为0, 则跳转到分支%d的.L.else.%d段\n", label_i, label_i);
-		printf("	beqz a0, .L.else.%d\n", label_i);
-		printf("\n# Then语句%d\n", label_i);
+		print_ln("  # 若a0为0, 则跳转到分支%d的.L.else.%d段", label_i, label_i);
+		print_ln("	beqz a0, .L.else.%d", label_i);
+		print_ln("# Then语句%d", label_i);
 		gen_stmt(root->then_stmts);
-		printf("  # 跳转到分支%d的.L.end.%d段\n", label_i, label_i);
-		printf("	j .L.end.%d\n", label_i);
-		printf("\n# Else语句%d\n", label_i);
-		printf("# 分支%d的.L.else.%d段标签\n", label_i, label_i);
-		printf(".L.else.%d:\n", label_i);
+		print_ln("  # 跳转到分支%d的.L.end.%d段", label_i, label_i);
+		print_ln("	j .L.end.%d", label_i);
+		print_ln("# Else语句%d", label_i);
+		print_ln("# 分支%d的.L.else.%d段标签", label_i, label_i);
+		print_ln(".L.else.%d:", label_i);
 		if (root->else_stmts)
 		{
 			gen_stmt(root->else_stmts);
 		}
-		printf("\n# 分支%d的.L.end.%d段标签\n", label_i, label_i);
-		printf(".L.end.%d:\n", label_i);
+		print_ln("# 分支%d的.L.end.%d段标签", label_i, label_i);
+		print_ln(".L.end.%d:", label_i);
 		return;
 	}
 	case AST_NODE_FOR:
 	{
 		label_i = label_index();
-		printf("\n# =====循环语句%d===============\n", label_i);
+		print_ln("# =====循环语句%d===============", label_i);
 		if (root->init_condition)
 		{
 			gen_stmt(root->init_condition);
 		}
-		printf("\n# 循环%d的.L.begin.%d段标签\n", label_i, label_i);
-		printf(".L.begin.%d:\n", label_i);
-		printf("# Cond表达式%d\n", label_i);
+		print_ln("# 循环%d的.L.begin.%d段标签", label_i, label_i);
+		print_ln(".L.begin.%d:", label_i);
+		print_ln("# Cond表达式%d", label_i);
 		if (root->if_condition)
 		{
 			gen_expr(root->if_condition);
-			printf("	# 若a0为0, 则跳转到循环%d的.L.end.%d段\n", label_i, label_i);
-			printf("	beqz a0, .L.end.%d\n", label_i);
+			print_ln("	# 若a0为0, 则跳转到循环%d的.L.end.%d段", label_i, label_i);
+			print_ln("	beqz a0, .L.end.%d", label_i);
 		}
-		printf("\n# Then语句%d\n", label_i);
+		print_ln("# Then语句%d", label_i);
 		gen_stmt(root->then_stmts);
 		if (root->inc_condition)
 		{
-			printf("\n# Inc语句%d\n", label_i);
+			print_ln("# Inc语句%d", label_i);
 			gen_expr(root->inc_condition);
 		}
-		printf("  # 跳转到循环%d的.L.begin.%d段\n", label_i, label_i);
-		printf("	j .L.begin.%d\n", label_i);
-		printf("\n# 循环%d的.L.end.%d段标签\n", label_i, label_i);
-		printf(".L.end.%d:\n", label_i);
+		print_ln("  # 跳转到循环%d的.L.begin.%d段", label_i, label_i);
+		print_ln("	j .L.begin.%d", label_i);
+		print_ln("# 循环%d的.L.end.%d段标签", label_i, label_i);
+		print_ln(".L.end.%d:", label_i);
 		return;
 	}
 	case AST_NODE_EPXR_STMT:
 		gen_expr(root->left);
 		return;
 	case AST_NODE_RETURN:
-		printf("# 返回语句\n");
+		print_ln("# 返回语句");
 		gen_expr(root->left);
-		printf("	# 跳转到.L.return.%s段\n", current_func->func_name);
-		printf("	j .L.return.%s\n", current_func->func_name);
+		print_ln("	# 跳转到.L.return.%s段", current_func->func_name);
+		print_ln("	j .L.return.%s", current_func->func_name);
 		return;
 	case AST_NODE_BLOCK:
 		cur_node = root->block_body;
@@ -329,31 +340,31 @@ void emit_data(var_stream_t *vs)
 	var_t *var = vs->head;
 	while (var)
 	{
-		printf("  # 数据段标签\n");
-    printf("  .data\n");
+		print_ln("  # 数据段标签");
+    print_ln("  .data");
 		if (var->init_data)
 		{
-			printf("%s:\n", var->name);
+			print_ln("%s:", var->name);
 			for (int i = 0; i < var->type->type_sizeof; i++)
 			{
 				char c = var->init_data[i];
 				if (isprint(c))
 				{
-          printf("	.byte %d\t# 字符：%c\n", c, c);
+          print_ln("	.byte %d\t# 字符：%c", c, c);
 				}
 				else
 				{
-          printf("	.byte %d\n", c);
+          print_ln("	.byte %d", c);
 				}
 			}
 		}
 		else
 		{
-			printf("  .globl %.*s\n",var->name_len, var->name);
-			printf("  # 全局变量%.*s\n",var->name_len, var->name);
-			printf("%.*s:\n", var->name_len, var->name);
-			printf("  # 零填充%d位\n", var->type->type_sizeof);
-			printf("  .zero %d\n", var->type->type_sizeof);
+			print_ln("  .globl %.*s",var->name_len, var->name);
+			print_ln("  # 全局变量%.*s",var->name_len, var->name);
+			print_ln("%.*s:", var->name_len, var->name);
+			print_ln("  # 零填充%d位", var->type->type_sizeof);
+			print_ln("  .zero %d", var->type->type_sizeof);
 		}
 
 		var = var->next;
@@ -364,12 +375,12 @@ void emit_text(function_t *prog)
 {
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
-		printf("\n	# 定义全局%s段\n", fn->func_name);
-		printf("	.global %s\n", fn->func_name);
-		printf("	.text\n");
-		printf("\n# =====%s段开始===============\n", fn->func_name);
-		printf("# %s段标签, 也是程序入口段\n", fn->func_name);
-		printf("%s:\n", fn->func_name);
+		print_ln("	# 定义全局%s段", fn->func_name);
+		print_ln("	.global %s", fn->func_name);
+		print_ln("	.text");
+		print_ln("# =====%s段开始===============", fn->func_name);
+		print_ln("# %s段标签, 也是程序入口段", fn->func_name);
+		print_ln("%s:", fn->func_name);
 		// 栈布局
 		//-------------------------------// sp
 		//              fp
@@ -381,54 +392,54 @@ void emit_text(function_t *prog)
 
 		// Prologue, 前言
 		// 将ra寄存器压栈,保存ra的值
-		printf("	# 将ra寄存器压栈,保存ra的值\n");
-		printf("	addi sp, sp, -16\n");
-		printf("	sd ra, 8(sp)\n");
+		print_ln("	# 将ra寄存器压栈,保存ra的值");
+		print_ln("	addi sp, sp, -16");
+		print_ln("	sd ra, 8(sp)");
 		// 将fp压入栈中，保存fp的值
-		printf("	# 将fp压栈, fp属于“被调用者保存”的寄存器, 需要恢复原值\n");
-		printf("	sd fp, 0(sp)\n");
+		print_ln("	# 将fp压栈, fp属于“被调用者保存”的寄存器, 需要恢复原值");
+		print_ln("	sd fp, 0(sp)");
 		// 将sp写入fp
-		printf("	# 将sp的值写入fp\n");
-		printf("	mv fp, sp\n");
+		print_ln("	# 将sp的值写入fp");
+		print_ln("	mv fp, sp");
 
-		printf("	# sp腾出StackSize大小的栈空间\n");
-		printf("	addi sp, sp, -%d\n", fn->stack_size);
+		print_ln("	# sp腾出StackSize大小的栈空间");
+		print_ln("	addi sp, sp, -%d", fn->stack_size);
 
-		printf("\n# =====%s段主体===============\n", fn->func_name);
+		print_ln("# =====%s段主体===============", fn->func_name);
 		int reg_i = 0;
 		var_stream_t *args_vars = fn->func_params;
 		var_t *var = args_vars->head;
 		while (var != NULL)
 		{
-			printf("	# 将%s寄存器的值存入%.*s的栈地址\n", 
+			print_ln("	# 将%s寄存器的值存入%.*s的栈地址", 
 								func_call_args_reg[reg_i], var->name_len +1, var->name);
 			if (var->type->type_sizeof == 1)
 			{
-      	printf("	sb %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
+      	print_ln("	sb %s, %d(fp)", func_call_args_reg[reg_i++], var->offset);
 			}
 			else
 			{
-      	printf("	sd %s, %d(fp)\n", func_call_args_reg[reg_i++], var->offset);
+      	print_ln("	sd %s, %d(fp)", func_call_args_reg[reg_i++], var->offset);
 			}
 			var = var->next;
 		}
 		current_func = fn;
 		gen_stmt(fn->func_body);
 		// Epilogue，后语
-		printf("\n# =====%s段结束===============\n",fn->func_name);
-		printf("# return段标签\n");
-		printf(".L.return.%s:\n", fn->func_name);
+		print_ln("# =====%s段结束===============",fn->func_name);
+		print_ln("# return段标签");
+		print_ln(".L.return.%s:", fn->func_name);
 		// 将fp的值改写回sp
-		printf("	# 将fp的值写回sp\n");
-		printf("	mv sp, fp\n");
+		print_ln("	# 将fp的值写回sp");
+		print_ln("	mv sp, fp");
 		// 将最早fp保存的值弹栈，恢复fp。
-		printf("	# 将最早fp保存的值弹栈, 恢复fp和sp\n");
-		printf("	ld fp, 0(sp)\n");
+		print_ln("	# 将最早fp保存的值弹栈, 恢复fp和sp");
+		print_ln("	ld fp, 0(sp)");
 		// 将ra寄存器弹栈,恢复ra的值
-		printf("	# 将ra寄存器弹栈,恢复ra的值\n");
-		printf("	ld ra, 8(sp)\n");
-		printf("	addi sp, sp, 16\n");
-		printf("	ret\n");
+		print_ln("	# 将ra寄存器弹栈,恢复ra的值");
+		print_ln("	ld ra, 8(sp)");
+		print_ln("	addi sp, sp, 16");
+		print_ln("	ret");
 	}
 }
 
