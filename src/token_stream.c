@@ -56,6 +56,8 @@ static int read_escaped_char(char *p)
   // 属于GNU C拓展
   case 'e': // 转义符
     return 27;
+	case '0':
+		return 0;
   default: // 默认将原字符返回
     return *p;
 	}

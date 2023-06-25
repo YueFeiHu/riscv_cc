@@ -83,6 +83,7 @@ static AST_node_t *func_call(token_stream_t *ts);
 
 static bool is_function(token_stream_t *ts, type_t **base_ty)
 {
+	local_vars = var_stream_create();
 	token_t *tok = token_stream_get(ts);
 	if (token_equal_str(tok, ";"))
 	{
@@ -97,12 +98,19 @@ static var_t *find_var(token_t *tok)
 {
 	for (scope_t *cur_scp = scp; cur_scp; cur_scp = cur_scp->next)
 	{
-		for (var_scope_t *vs_scp = cur_scp->var_scopes; vs_scp; vs_scp = vs_scp->next)
+		var_stream_t *vs = cur_scp->scope_vars;
+		if (!vs)
 		{
-			if (token_equal_str(tok, vs_scp->scope_name))
+			return NULL;
+		}
+		var_t *var = vs->head;
+		while (var)
+		{
+			if (token_equal_str(tok, var->name))
 			{
-				return vs_scp->var;
+				return var;
 			}
+			var = var->next;
 		}
 	}
 	return NULL;
@@ -127,7 +135,6 @@ static void global_vars_add(token_stream_t *ts, type_t *ty)
 		var_t *var = var_create(token_get_ident(ty->name_token), ty->name_token->len, ty);
 		var_stream_add(global_vars, var);
 	}
-	
 }
 
 // program = (functionDefinition | globalVariable)*
@@ -142,7 +149,8 @@ function_t *parse(token_stream_t *ts)
 	while (tok->kind != TK_EOF)
 	{
 		type_t *base_type = declspec(ts);
-		local_vars = var_stream_create();
+		scope_enter(&scp);
+		
 		if (is_function(ts, &base_type))
 		{
 			cur->next_function = function_define(ts, base_type);
@@ -152,6 +160,7 @@ function_t *parse(token_stream_t *ts)
 		{
 			global_vars_add(ts, base_type);
 		}
+		scope_leave(&scp);
 		tok = token_stream_get(ts);
 	}
 	return head.next_function;
@@ -163,15 +172,16 @@ static function_t *function_define(token_stream_t *ts, type_t *ty)
 
 	// type_t *ty = declspec(ts);
 	// type_t* ty = declarator(ts, base_type);
-	scope_enter(&scp);
 	function_t *func = calloc(1, sizeof(function_t));
 	func->func_name = token_get_ident(ty->name_token);
 	func->func_params = local_vars;
-	// local_vars = var_stream_create();
+	
+	local_vars = var_stream_create();
+	var_stream_copy(local_vars, func->func_params);
 	EQUAL_SKIP(ts, "{");
+	
 	func->func_body = compound_stmt(ts);
 	func->local_vars = local_vars;
-	scope_leave(&scp);
 	return func;
 }
 
@@ -190,8 +200,9 @@ static type_t *func_params(token_stream_t *ts, type_t *ty)
 		}
 		type_t *base_type = declspec(ts);
 		type_t *real_type = declarator(ts, base_type);
-		var_stream_add(local_vars, var_create(token_get_ident(real_type->name_token),
+		var_stream_add_tail(local_vars, var_create(token_get_ident(real_type->name_token),
 																			 real_type->name_token->len, real_type));
+			
 		tok = token_stream_get(ts);
 		cur->next = real_type;
 		cur = cur->next;
@@ -667,7 +678,7 @@ AST_node_t *primary(token_stream_t *ts)
 	if (token_equal_str(tok, "(") && 
 		  token_equal_str(token_stream_peek_next(ts), "{"))
 	{
-		AST_node_t *node = new_AST_node(AST_NODE_EPXR_STMT, tok);
+		AST_node_t *node = new_AST_node(AST_NODE_STMT_EXPR, tok);
 		token_stream_advance(ts);
 		token_stream_advance(ts);
 		node->block_body = compound_stmt(ts)->block_body;

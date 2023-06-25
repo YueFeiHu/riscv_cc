@@ -110,7 +110,7 @@ static void assign_var_offset(function_t *prog)
 	}
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
-		int offset = 0;
+		int offset = fn->stack_size ;
 		var_t *var = fn->func_params->head;
 		for (; var; var = var->next)
 		{
@@ -175,7 +175,7 @@ static void gen_expr(AST_node_t *root)
 		gen_expr(root->left);
 		load(root->data_type);
 		return;
-	case AST_NODE_EPXR_STMT:
+	case AST_NODE_STMT_EXPR:
 		for (AST_node_t *cur = root->block_body; cur; cur = cur->stmt_list_next)
 		{
 			gen_stmt(cur);
@@ -192,7 +192,7 @@ static void gen_expr(AST_node_t *root)
 			push();
 			num_args++;
 		}
-		for (int i = num_args - 1; i >= 0; i--)
+		for (int i = 0; i < num_args; i++)
 		{
 			pop(func_call_args_reg[i]);
 		}

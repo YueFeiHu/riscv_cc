@@ -22,7 +22,7 @@ var_t* var_create(const char *name, int name_len, struct type* ty)
     new_var->type = ty;
     new_var->offset = 0;
     new_var->next = NULL;
-    scope_push_var(&scp, new_var->name, new_var);
+    scope_push_var(scp, new_var);
     return new_var;
 }
 

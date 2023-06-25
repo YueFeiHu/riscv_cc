@@ -101,3 +101,23 @@ var_t *var_stream_find(var_stream_t *var_stream, const char *str)
 
     return NULL;
 }
+
+void var_stream_copy(var_stream_t *a, var_stream_t *b) {
+    if (a == NULL || b == NULL) {
+        return;
+    }
+
+    var_t *current_b = b->head;
+
+    while (current_b != NULL) {
+        // 创建一个新的var_t并复制current_b的数据到新的变量中
+        var_t *new_var = (var_t*)malloc(sizeof(var_t));
+        memcpy(new_var, current_b, sizeof(var_t));
+        new_var->next = NULL;
+
+        // 将复制得到的新变量添加到a的变量流中
+        var_stream_add(a, new_var);
+
+        current_b = current_b->next;
+    }
+}

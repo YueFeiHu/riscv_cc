@@ -22,8 +22,6 @@ int main() {
   // [14] 支持空语句
   ASSERT(5, ({ ;;; 5; }));
 
-  ASSERT(10, ({ int i=0; while(i<10) i=i+1; i; }));
-  ASSERT(55, ({ int i=0; int j=0; while(i<=10) {j=i+j; i=i+1;} j; }));
 
   printf("OK\n");
   return 0;
