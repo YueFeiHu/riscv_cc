@@ -95,6 +95,8 @@ static int align(int n, int align_num)
 	return (n + align_num - 1) / align_num * align_num;
 }
 
+// 这里local变量与节点中变量的关系尚未厘清
+// 解法大概是一个var需要两个next指针
 static void assign_var_offset(function_t *prog)
 {
 	for (function_t *fn = prog; fn; fn = fn->next_function)
@@ -110,14 +112,13 @@ static void assign_var_offset(function_t *prog)
 	}
 	for (function_t *fn = prog; fn; fn = fn->next_function)
 	{
-		int offset = fn->stack_size ;
+		int offset = 0;
 		var_t *var = fn->func_params->head;
 		for (; var; var = var->next)
 		{
 			offset += var->type->type_sizeof;
 			var->offset = -offset;
 		}
-		fn->stack_size = align(offset, 16);
 	}
 }
 

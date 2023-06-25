@@ -13,6 +13,8 @@ static char *new_unique_name()
     return format(".L..%d", id++);
 }
 
+
+
 var_t* var_create(const char *name, int name_len, struct type* ty)
 {
     var_t* new_var = (var_t*) malloc(sizeof(var_t));
@@ -21,7 +23,7 @@ var_t* var_create(const char *name, int name_len, struct type* ty)
     strncpy(new_var->name, name, name_len);
     new_var->type = ty;
     new_var->offset = 0;
-    new_var->next = NULL;
+    // new_var->next = NULL;
     scope_push_var(scp, new_var);
     return new_var;
 }
@@ -50,4 +52,37 @@ void var_free(var_t *v)
 {
     free(v->name);
     free(v);
+}
+
+void var_copy(var_t *a, var_t *b) {
+    if (a == NULL || b == NULL) {
+        return;
+    }
+
+    a->name_len = b->name_len;
+
+    free(a->name);
+    a->name = (char*)malloc((a->name_len + 1) * sizeof(char));
+    strncpy(a->name, b->name, a->name_len);
+    a->name[a->name_len] = '\0';
+
+    a->type = b->type;
+    a->offset = b->offset;
+    a->is_global = b->is_global;
+
+    free(a->init_data);
+    if (b->init_data != NULL) {
+        int init_data_len = strlen(b->init_data);
+        a->init_data = (char*)malloc((init_data_len + 1) * sizeof(char));
+        strncpy(a->init_data, b->init_data, init_data_len);
+        a->init_data[init_data_len] = '\0';
+    } else {
+        a->init_data = NULL;
+    }
+
+    // 复制next指针
+    // ...
+
+    // 如果需要复制其他成员变量，请在此处添加复制代码
+    // ...
 }

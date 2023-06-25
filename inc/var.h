@@ -14,6 +14,7 @@ typedef struct var
 
     char *init_data;    // 全局变量
     struct var *next;
+    struct var *scope_var_next;
 }var_t;
 
 var_t *var_create(const char *name, int name_len, struct type *ty);
@@ -23,5 +24,7 @@ var_t *var_str_create(char *str, struct type *ty);
 bool var_equal(var_t *lhs, var_t* rhs);
 
 void var_free(var_t *v);
+
+void var_copy(var_t *a, var_t *b);
 
 #endif

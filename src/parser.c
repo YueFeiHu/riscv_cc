@@ -26,7 +26,7 @@
 
 var_stream_t *local_vars;
 var_stream_t *global_vars;
-scope_t *scp;
+scope_t *scp = &(scope_t){NULL, &(var_stream_t){}};
 
 // program = (functionDefinition | globalVariable)*
 // functionDefinition = declspec declarator "{" compoundStmt*
@@ -91,7 +91,12 @@ static bool is_function(token_stream_t *ts, type_t **base_ty)
 	}
 	
 	*base_ty = declarator(ts, *base_ty);
-	return (*base_ty)->kind == TYPE_FUNC;
+	bool ret = (*base_ty)->kind == TYPE_FUNC;
+	if (ret == true)
+	{
+		scope_enter(&scp);
+	}
+	return ret;
 }
 
 static var_t *find_var(token_t *tok)
@@ -110,7 +115,7 @@ static var_t *find_var(token_t *tok)
 			{
 				return var;
 			}
-			var = var->next;
+			var = var->scope_var_next;
 		}
 	}
 	return NULL;
@@ -133,6 +138,7 @@ static void global_vars_add(token_stream_t *ts, type_t *ty)
 		
 		ty = declarator(ts, ty);
 		var_t *var = var_create(token_get_ident(ty->name_token), ty->name_token->len, ty);
+		var->is_global = true;
 		var_stream_add(global_vars, var);
 	}
 }
@@ -140,7 +146,7 @@ static void global_vars_add(token_stream_t *ts, type_t *ty)
 // program = (functionDefinition | globalVariable)*
 function_t *parse(token_stream_t *ts)
 {
-	scp = scope_create();
+	// scp = scope_create();
 	global_vars = var_stream_create();
 	function_t head;
 	function_t *cur = &head;
@@ -149,20 +155,24 @@ function_t *parse(token_stream_t *ts)
 	while (tok->kind != TK_EOF)
 	{
 		type_t *base_type = declspec(ts);
-		scope_enter(&scp);
-		
+
+		// scope_enter(&scp); 移入到is_function中
 		if (is_function(ts, &base_type))
 		{
 			cur->next_function = function_define(ts, base_type);
 			cur = cur->next_function;
+			// 退出函数域
+			scope_leave(&scp);
 		}
 		else 
 		{
+			// 进入全局域
+			// scope_enter(&scp);
 			global_vars_add(ts, base_type);
 		}
-		scope_leave(&scp);
 		tok = token_stream_get(ts);
 	}
+	// scope_leave(&scp);
 	return head.next_function;
 }
 
