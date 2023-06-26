@@ -96,6 +96,5 @@ int main(int argc, char **argv)
 	FILE *out = open_file(output_file);
   fprintf(out, ".file 1 \"%s\"\n", input);
 	code_gen(func, out);
-
 	return 0;
 }

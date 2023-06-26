@@ -144,6 +144,12 @@ static void gen_var_addr(AST_node_t *node)
 		gen_expr(node->left);
 		return;
 	}
+	else if (node->kind == AST_NODE_COMMA)
+	{
+		gen_expr(node->left);
+		gen_var_addr(node->right);
+		return;
+	}
 	error_log("not an lvalue");
 }
 
@@ -183,6 +189,10 @@ static void gen_expr(AST_node_t *root)
 		{
 			gen_stmt(cur);
 		}
+		return;
+	case AST_NODE_COMMA:
+		gen_expr(root->left);
+		gen_var_addr(root->right);
 		return;
 	case AST_NODE_FUNC_CALL:
 	{

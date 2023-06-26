@@ -28,9 +28,9 @@ ${BIN_DIR}/%.o : ${SRC_DIR}/%.c
 
 # 测试标签，运行测试
 tests/%.exe: rvcc tests/%.c
-# $(CC) -o- -E -P -C test/$*.c | ./rvcc -o test/$*.s -
+# $(CC) -o- -E -P -C tests/$*.c | ./rvcc -o tests/$*.s -
 	$(RISCV)/bin/riscv64-unknown-linux-gnu-gcc -o- -E -P -C tests/$*.c | ./rvcc -o tests/$*.s -
-# $(CC) -o $@ test/$*.s -xc test/common
+# $(CC) -o $@ tests/$*.s -xc tests/common
 	$(RISCV)/bin/riscv64-unknown-linux-gnu-gcc -static -o $@ tests/$*.s -xc tests/common
 
 test: $(TESTS)

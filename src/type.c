@@ -88,7 +88,9 @@ void type_add2node(AST_node_t *node)
     case AST_NODE_VAR:
         node->data_type = node->var->type;
         return;
-
+    case AST_NODE_COMMA:
+        node->data_type = node->right->data_type;
+        return;
     case AST_NODE_ADDR:{
         type_t *ty = node->left->data_type;
         if (ty->kind == TYPE_ARRAY)

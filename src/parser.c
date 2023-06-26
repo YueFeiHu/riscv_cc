@@ -46,7 +46,7 @@ scope_t *scp = &(scope_t){NULL, &(var_stream_t){}};
 //        | "{" compoundStmt
 //        | exprStmt
 // exprStmt = expr? ";"
-// expr = assign
+// expr = assign ("," expr)?
 // assign = equality ("=" assign)?
 // equality = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
@@ -438,10 +438,17 @@ AST_node_t *expr_stmt(token_stream_t *ts)
 	}
 	return node;
 }
-
+// expr = assign ("," expr)?
 AST_node_t *expr(token_stream_t *ts)
 {
-	return assign(ts);
+	AST_node_t *node = assign(ts);
+	token_t *tok = token_stream_get(ts);
+	if (token_equal_str(tok, ","))
+	{
+		token_stream_advance(ts);
+		return new_binary(AST_NODE_COMMA, node, expr(ts), tok);
+	}
+	return node;
 }
 
 // assign = equality ("=" assign)?
