@@ -7,7 +7,7 @@
 extern char *current_input;
 extern char *current_file;
 
-static void verror_at(const char *loc, char *fmt, va_list va);
+static void verror_at(int line_no, const char *loc, char *fmt, va_list va);
 
 void error_log(const char *fmt, ...)
 {
@@ -19,7 +19,7 @@ void error_log(const char *fmt, ...)
 	exit(1);
 }
 
-void verror_at(const char *loc, char *fmt, va_list va)
+void verror_at(int line_no, const char *loc, char *fmt, va_list va)
 {
 	const char *line = loc;
 	while (current_input < line && line[-1] != '\n')
@@ -28,14 +28,6 @@ void verror_at(const char *loc, char *fmt, va_list va)
 	while (*end != '\n')
 	{
 		end++;
-	}
-	int line_no = 1;
-	for (char *p = current_input; p < line; p++)
-	{
-		if (*p == '\n')
-		{
-			line_no++;
-		}
 	}
 
   int ident = fprintf(stderr, "%s:%d: ",current_file, line_no);
@@ -50,15 +42,23 @@ void verror_at(const char *loc, char *fmt, va_list va)
 
 void error_at(const char *loc, char *fmt, ...)
 {
+	int line_no = 1;
+	for (char *p = current_input; p < loc; p++)
+	{
+		if (*p == '\n')
+		{
+			line_no++;
+		}
+	}
 	va_list va;
 	va_start(va, fmt);
-	verror_at(loc, fmt, va);
+	verror_at(line_no, loc, fmt, va);
 	exit(1);
 }
 
 void error_tok(const token_t *tok, char *fmt, ...) {
   va_list va;
   va_start(va, fmt);
-  verror_at(tok->loc, fmt, va);
+  verror_at(tok->line_no, tok->loc, fmt, va);
   exit(1);
 }

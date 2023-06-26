@@ -21,6 +21,7 @@ struct token{
 	const char *loc;
 	char *str; // string literal 包括 '\0'
 	int len;
+	int line_no;
 };
 
 token_t *token_create(TokenKind kind, const char *start, const char *end);
@@ -33,5 +34,5 @@ bool token_equal_str(const token_t *tok, const char *str);
 
 bool token_is_keyword(const token_t *tok);
 
-
+void token_add_line_no(token_t *tok);
 #endif

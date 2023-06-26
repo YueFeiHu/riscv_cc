@@ -319,6 +319,7 @@ token_stream_t *tokenize(char *p)
 	}
 	cur = token_create(TK_EOF, p, p);
 	token_stream_add(ts, cur);
+	token_add_line_no(ts->tokens);
 	return ts;
 }
 

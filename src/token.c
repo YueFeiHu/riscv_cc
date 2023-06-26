@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 static char *keywords[] = {"return", "if", "else", "for", "while", "int", "sizeof", "char"};
-
+extern char *current_input;
 bool token_equal_str(const token_t *tok, const char *str)
 {
 	return memcmp(tok->loc, str, tok->len) == 0 && str[tok->len] == '\0';
@@ -53,3 +53,20 @@ bool token_is_keyword(const token_t *tok)
 	return false;
 }
 
+void token_add_line_no(token_t *tok)
+{
+	char *p = current_input;
+	int n = 1;
+	do
+	{
+		if (p == tok->loc)
+		{
+			tok->line_no = n;
+			tok = tok->next;
+		}
+		if (*p == '\n')
+		{
+			n++;
+		}
+	}while (*p++);
+}
