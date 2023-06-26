@@ -5,6 +5,7 @@
 #include "ast_node.h"
 #include "type.h"
 #include "var_stream.h"
+#include "token.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -148,6 +149,7 @@ static void gen_var_addr(AST_node_t *node)
 
 static void gen_expr(AST_node_t *root)
 {
+	print_ln("	.loc 1 %d", root->end_tok->line_no);
 	switch (root->kind)
 	{
 	case AST_NODE_NUM:
@@ -257,6 +259,7 @@ static void gen_expr(AST_node_t *root)
 
 static void gen_stmt(AST_node_t *root)
 {
+	print_ln("	.loc 1 %d", root->end_tok->line_no);
 	AST_node_t *cur_node;
 	switch (root->kind)
 	{

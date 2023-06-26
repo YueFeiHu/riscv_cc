@@ -94,6 +94,7 @@ int main(int argc, char **argv)
 #endif
 	struct function *func = parse(ts);
 	FILE *out = open_file(output_file);
+  fprintf(out, ".file 1 \"%s\"\n", input);
 	code_gen(func, out);
 
 	return 0;
