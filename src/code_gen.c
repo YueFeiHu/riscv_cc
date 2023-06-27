@@ -107,6 +107,7 @@ static void assign_var_offset(function_t *prog)
 		for (; var; var = var->next)
 		{
 			offset += var->type->type_sizeof;
+			offset = align(offset, var->type->align);
 			var->offset = -offset;
 		}
 		fn->stack_size = align(offset, 16);
@@ -118,6 +119,7 @@ static void assign_var_offset(function_t *prog)
 		for (; var; var = var->next)
 		{
 			offset += var->type->type_sizeof;
+			offset = align(offset, var->type->align);
 			var->offset = -offset;
 		}
 	}
