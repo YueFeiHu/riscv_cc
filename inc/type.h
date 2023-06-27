@@ -9,9 +9,12 @@ typedef enum {
 	TYPE_PTR, 
   TYPE_FUNC,
   TYPE_ARRAY,
+  TYPE_STRUCT,
 } TypeKind;
 
 struct token;
+struct struct_member;
+
 typedef struct type {
   TypeKind kind;
   int type_sizeof;
@@ -22,9 +25,18 @@ typedef struct type {
   struct type *func_ret_type;
   struct type *func_params;
 
+  struct struct_member *mems;
+
   struct type *next;
   int array_len;
 }type_t;
+
+typedef struct struct_member{
+  struct struct_member *next;
+  type_t *ty;
+  struct token *name;
+  int offset;
+}struct_member_t;
 
 struct AST_node;
 

@@ -41,7 +41,7 @@ test: $(TESTS)
 
 # 清理标签，清理所有非源代码文件
 clean:
-	rm -rf rvcc tmp* $(TESTS) test/*.s test/*.exe
+	rm -rf rvcc $(TESTS) test/*.s test/*.exe
 	find * -type f '(' -name '*~' -o -name '*.o' -o -name '*.s' ')' -exec rm {} ';'
 
 # 伪目标，没有实际的依赖文件

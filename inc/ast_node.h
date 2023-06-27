@@ -18,6 +18,7 @@ typedef enum
 	AST_NODE_VAR,
 	AST_NODE_ASSIGN,
 	AST_NODE_COMMA,
+	AST_NODE_MEMBER,
 	AST_NODE_EPXR_STMT,
 	AST_NODE_STMT_EXPR,
 	AST_NODE_RETURN,
@@ -30,6 +31,7 @@ typedef enum
 struct token;
 struct var;
 struct type;
+struct struct_member;
 typedef struct AST_node AST_node_t;
 
 struct AST_node
@@ -52,6 +54,8 @@ struct AST_node
 
 	char *func_call_name;
 	AST_node_t *func_call_args;
+
+	struct struct_member *mem;
 
 	struct var *var;
 	int val;

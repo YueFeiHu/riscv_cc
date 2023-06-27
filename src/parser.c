@@ -30,7 +30,7 @@ scope_t *scp = &(scope_t){NULL, &(var_stream_t){}};
 
 // program = (functionDefinition | globalVariable)*
 // functionDefinition = declspec declarator "{" compoundStmt*
-// declspec = "char" | "int"
+// declspec = "char" | "int" | structDecl
 // declarator = "*"* ident typeSuffix
 // typeSuffix = "(" funcParams | "[" num "]" typeSuffix | ε
 // funcParams = (param ("," param)*)? ")"
@@ -53,13 +53,17 @@ scope_t *scp = &(scope_t){NULL, &(var_stream_t){}};
 // add = mul ("+" mul | "-" mul)*
 // mul = unary ("*" unary | "/" unary)*
 // unary = ("+" | "-" | "*" | "&") unary | postfix
-// postfix = primary ("[" expr "]")*
+// structMembers = (declspec declarator (","  declarator)* ";")*
+// structDecl = "{" structMembers
+// postfix = primary ("[" expr "]" | "." ident)*
 // primary = "(" "{" stmt+ "}" ")"
 //         | "(" expr ")"
 //         | "sizeof" unary
 //         | ident funcArgs?
 //         | str
 //         | num
+
+// funcall = ident "(" (assign ("," assign)*)? ")"
 static function_t *function_define(token_stream_t *ts, type_t *base_type);
 static type_t *type_suffix(token_stream_t *ts, type_t *ty);
 static AST_node_t *compound_stmt(token_stream_t *ts);
@@ -76,6 +80,7 @@ static AST_node_t *add(token_stream_t *ts);
 static AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *mul(token_stream_t *ts);
+static type_t *struct_decl(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *postfix(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
@@ -97,6 +102,12 @@ static bool is_function(token_stream_t *ts, type_t **base_ty)
 		scope_enter(&scp);
 	}
 	return ret;
+}
+
+static bool is_typename(token_t *tok) {
+  return token_equal_str(tok, "char") || 
+				 token_equal_str(tok, "int")  ||
+				 token_equal_str(tok, "struct");
 }
 
 static var_t *find_var(token_t *tok)
@@ -254,7 +265,7 @@ static AST_node_t *compound_stmt(token_stream_t *ts)
 	token_t *tok = token_stream_get(ts);
 	while (!token_equal_str(tok, "}"))
 	{
-		if (token_equal_str(tok, "int") || token_equal_str(tok, "char"))
+		if (is_typename(tok))
 		{
 			cur->stmt_list_next = declaration(ts);
 		}
@@ -320,8 +331,18 @@ type_t *declspec(token_stream_t *ts)
 		token_stream_advance(ts);
 		return type_char;
 	}
-	EQUAL_SKIP(ts, "int");
-	return type_int;
+	if (token_equal_str(tok, "int"))
+	{
+		token_stream_advance(ts);
+		return type_int;
+	}
+	if (token_equal_str(tok, "struct"))
+	{
+		token_stream_advance(ts);
+		return struct_decl(ts);
+	}
+	error_tok(tok, "typename expected");
+	return NULL;
 }
 
 // declarator = "*"* ident typeSuffix
@@ -669,17 +690,102 @@ AST_node_t *unary(token_stream_t *ts)
 	}
 	return postfix(ts);
 }
+
+static void scan_struct_members(token_stream_t *ts, type_t *ty)
+{
+	struct_member_t head = {};
+	struct_member_t *cur = &head;
+	token_t *tok = token_stream_get(ts);
+	while (!token_equal_str(tok, "}"))
+	{
+		type_t *base_type = declspec(ts);
+		bool first = true;
+		while (!token_stream_consume(ts, ";")){
+			if (!first)
+			{
+				EQUAL_SKIP(ts, ",");
+			}
+			first = false;
+			struct_member_t *mem = calloc(1, sizeof(struct_member_t));
+			mem->ty = declarator(ts, base_type);
+			mem->name = mem->ty->name_token;
+			cur->next = mem;
+			cur = mem; 
+			tok = token_stream_get(ts);
+		}
+		tok = token_stream_get(ts);
+	}
+	ty->mems = head.next;
+}
+
+static type_t *struct_decl(token_stream_t *ts)
+{
+	EQUAL_SKIP(ts, "{");
+	type_t *ty = calloc(1, sizeof(type_t));
+	ty->kind = TYPE_STRUCT;
+	scan_struct_members(ts, ty);
+	EQUAL_SKIP(ts, "}");
+	int offset = 0;
+	for (struct_member_t *mem = ty->mems; mem; mem = mem->next)
+	{
+		mem->offset = offset;
+		offset += mem->ty->type_sizeof;
+	}
+	ty->type_sizeof = offset;
+	return ty;
+}
+
+static struct_member_t *get_struct_mem(type_t *ty, token_t *tok)
+{
+	struct_member_t *cur = ty->mems;
+	while (cur)
+	{
+		if (strncmp(cur->name->loc, tok->loc, tok->len) == 0)
+		{
+			return cur;
+		}
+		cur = cur->next;
+	}
+	error_tok(tok, "no such member");
+	return NULL;
+}
+
+static AST_node_t *struct_ref(AST_node_t *node, token_t *tok)
+{
+	type_add2node(node);
+	if (node->data_type->kind != TYPE_STRUCT)
+	{
+		error_tok(node->end_tok, "not a struct");
+	}
+	AST_node_t *cur = new_unary(AST_NODE_MEMBER, node, tok);
+	cur->mem = get_struct_mem(node->data_type, tok);
+	return cur;
+}
+
 static AST_node_t *postfix(token_stream_t *ts)
 {
 	AST_node_t *node = primary(ts);
 	token_t *tok = token_stream_get(ts);
-	while(token_equal_str(tok, "["))
-	{
-		token_stream_advance(ts);
-		AST_node_t *array_index_node = expr(ts);
-		EQUAL_SKIP(ts, "]");
-		node = new_unary(AST_NODE_DEREF, ptr_add(node, array_index_node, tok), tok);
-		tok = token_stream_get(ts);
+	while (true){
+		if(token_equal_str(tok, "["))
+		{
+			token_stream_advance(ts);
+			AST_node_t *array_index_node = expr(ts);
+			EQUAL_SKIP(ts, "]");
+			node = new_unary(AST_NODE_DEREF, ptr_add(node, array_index_node, tok), tok);
+			tok = token_stream_get(ts);
+			continue;
+		}
+		if (token_equal_str(tok, "."))
+		{
+			token_stream_advance(ts);
+			tok = token_stream_get(ts);
+			node = struct_ref(node, tok);
+			token_stream_advance(ts);
+			tok = token_stream_get(ts);
+			continue;
+		}
+		break;
 	}
 	return node;
 }

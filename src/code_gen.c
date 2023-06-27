@@ -150,6 +150,14 @@ static void gen_var_addr(AST_node_t *node)
 		gen_var_addr(node->right);
 		return;
 	}
+	else if (node->kind == AST_NODE_MEMBER)
+	{
+		gen_var_addr(node->left);
+		print_ln("	# 计算成员变量的地址偏移量");
+    print_ln("	li t0, %d", node->mem->offset);
+    print_ln("	add a0, a0, t0");
+    return;
+	}
 	error_log("not an lvalue");
 }
 
@@ -168,6 +176,7 @@ static void gen_expr(AST_node_t *root)
 		print_ln("	neg a0, a0");
 		return;
 	case AST_NODE_VAR:
+	case AST_NODE_MEMBER:
 		gen_var_addr(root);
 		load(root->data_type);
 		return;
