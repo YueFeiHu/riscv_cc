@@ -86,6 +86,11 @@ static AST_node_t *postfix(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
 static AST_node_t *func_call(token_stream_t *ts);
 
+static int align(int n, int align_num)
+{
+	return (n + align_num - 1) / align_num * align_num;
+}
+
 static bool is_function(token_stream_t *ts, type_t **base_ty)
 {
 	local_vars = var_stream_create();
@@ -724,14 +729,20 @@ static type_t *struct_decl(token_stream_t *ts)
 	type_t *ty = calloc(1, sizeof(type_t));
 	ty->kind = TYPE_STRUCT;
 	scan_struct_members(ts, ty);
+	ty->align = 1;
 	EQUAL_SKIP(ts, "}");
 	int offset = 0;
 	for (struct_member_t *mem = ty->mems; mem; mem = mem->next)
 	{
+		offset = align(offset, mem->ty->align);
 		mem->offset = offset;
 		offset += mem->ty->type_sizeof;
+		if (ty->align < mem->ty->align)
+		{
+			ty->align = mem->ty->align;
+		}
 	}
-	ty->type_sizeof = offset;
+	ty->type_sizeof = align(offset, ty->align);
 	return ty;
 }
 

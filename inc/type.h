@@ -18,9 +18,9 @@ struct struct_member;
 typedef struct type {
   TypeKind kind;
   int type_sizeof;
+  int align;
 
   struct token *name_token;
-
   struct type *base_type;
   struct type *func_ret_type;
   struct type *func_params;
@@ -43,6 +43,7 @@ struct AST_node;
 extern type_t *type_int;
 extern type_t *type_char;
 
+type_t *new_type(TypeKind kind, int size, int align);
 type_t *type_ptr_create(type_t *base);
 type_t *type_func_create(type_t *ret_type);
 type_t *type_array_create(type_t *base, int len);

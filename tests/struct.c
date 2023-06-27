@@ -2,7 +2,6 @@
 
 int main() {
   // [49] 支持struct
-  // ASSERT(0, ({ struct {int a; int b;} x; 0;}));
   ASSERT(1, ({ struct {int a; int b;} x; x.a=1; x.b=2; x.a; }));
   ASSERT(2, ({ struct {int a; int b;} x; x.a=1; x.b=2; x.b; }));
   ASSERT(1, ({ struct {char a; int b; char c;} x; x.a=1; x.b=2; x.c=3; x.a; }));
@@ -26,8 +25,11 @@ int main() {
   ASSERT(32, ({ struct {int a;} x[4]; sizeof(x); }));
   ASSERT(48, ({ struct {int a[3];} x[2]; sizeof(x); }));
   ASSERT(2, ({ struct {char a; char b;} x; sizeof(x); }));
-  ASSERT(9, ({ struct {char a; int b;} x; sizeof(x); }));
   ASSERT(0, ({ struct {} x; sizeof(x); }));
+
+  // [50] 对齐结构体成员变量
+  ASSERT(16, ({ struct {char a; int b;} x; sizeof(x); }));
+  ASSERT(16, ({ struct {int a; char b;} x; sizeof(x); }));
 
   printf("OK\n");
   return 0;

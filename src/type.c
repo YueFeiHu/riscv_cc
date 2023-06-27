@@ -4,9 +4,17 @@
 #include "var.h"
 #include <stdlib.h>
 
-type_t *type_int = &(type_t){TYPE_INT, 8};
-type_t *type_char = &(type_t){TYPE_CHAR, 1};
+type_t *type_int = &(type_t){TYPE_INT, 8, 8};
+type_t *type_char = &(type_t){TYPE_CHAR, 1, 1};
 
+type_t *new_type(TypeKind kind, int size, int align)
+{
+    type_t *ty = calloc(1, sizeof(type_t));
+    ty->kind = kind;
+    ty->type_sizeof = size;
+    ty->align = align;
+    return ty;
+}
 
 bool is_integer(type_t *ty)
 {
@@ -139,9 +147,7 @@ void type_add2node(AST_node_t *node)
 
 type_t *type_ptr_create(type_t *base_type)
 {
-    type_t *ty = calloc(1, sizeof(type_t));
-    ty->type_sizeof = 8;
-    ty->kind = TYPE_PTR;
+    type_t *ty = new_type(TYPE_PTR, 8, 8);
     ty->base_type = base_type;
     return ty;
 }
@@ -156,11 +162,9 @@ type_t *type_func_create(type_t *ret_type)
 
 type_t *type_array_create(type_t *base_type, int len)
 {
-    type_t *ty = calloc(1, sizeof(type_t));
-    ty->kind = TYPE_ARRAY;
+    type_t *ty = new_type(TYPE_ARRAY, base_type->type_sizeof * len, base_type->align);
     ty->base_type = base_type;
     ty->array_len = len;
-    ty->type_sizeof = base_type->type_sizeof * len;
     return ty;
 }
 
