@@ -2,7 +2,7 @@
 #include "parser.h"
 #include "code_gen.h"
 #include "token_stream.h"
-#include "log.h"
+// #include "log.h"
 #include "error.h"
 #include <stdio.h>
 #include <time.h>

@@ -1,7 +1,12 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "scope.h"
 #include "var.h"
 #include "var_stream.h"
+#include "type.h"
+#include "token.h"
 #include <stdlib.h>
+#include <string.h>
 
 scope_t *scope_create()
 {
@@ -44,13 +49,21 @@ var_stream_t *scope_push_var(scope_t *scp, struct var *v)
   scope_var_stream_add(scp->scope_vars, v);
 }
 
-var_stream_t* scope_enter(scope_t **scp)
+void scope_push_tag(scope_t *scp, struct type *ty)
+{
+  tag_scope_t *tag = calloc(1, sizeof(tag_scope_t));
+  tag->name = strndup(ty->name_token->loc, ty->name_token->len);
+  tag->ty = ty;
+  tag->next = scp->scope_tags;
+  scp->scope_tags = tag;
+}
+
+void scope_enter(scope_t **scp)
 {
   scope_t *s = calloc(1, sizeof(scope_t));
   s->scope_vars = var_stream_create();
   s->next = *scp;
   *scp = s;
-  return s->scope_vars;
 }
 
 void scope_leave(scope_t **scp)

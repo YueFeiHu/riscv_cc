@@ -8,7 +8,7 @@
 #include "var_stream.h"
 #include "function.h"
 #include "type.h"
-#include "log.h"
+// #include "log.h"
 #include "scope.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,7 +26,7 @@
 
 var_stream_t *local_vars;
 var_stream_t *global_vars;
-scope_t *scp = &(scope_t){NULL, &(var_stream_t){}};
+scope_t *scp = &(scope_t){NULL, &(var_stream_t){}, NULL};
 
 // program = (functionDefinition | globalVariable)*
 // functionDefinition = declspec declarator "{" compoundStmt*
@@ -132,6 +132,24 @@ static var_t *find_var(token_t *tok)
 				return var;
 			}
 			var = var->scope_var_next;
+		}
+	}
+	return NULL;
+}
+
+static type_t *find_tag(token_t *tok)
+{
+	for (scope_t *cur_scp = scp; cur_scp; cur_scp = cur_scp->next)
+	{
+		tag_scope_t *tags = cur_scp->scope_tags;
+		
+		while (tags)
+		{
+			if (token_equal_str(tok, tags->name))
+			{
+				return tags->ty;
+			}
+			tags = tags->next;
 		}
 	}
 	return NULL;
@@ -725,6 +743,25 @@ static void scan_struct_members(token_stream_t *ts, type_t *ty)
 
 static type_t *struct_decl(token_stream_t *ts)
 {
+	// struct time_t time;
+	token_t *tag = NULL;
+	token_t *tok = token_stream_get(ts);
+	if (tok->kind == TK_IDENT)
+	{
+		tag = tok;
+		token_stream_advance(ts);
+		tok = token_stream_get(ts);
+	}
+	if (tag && !token_equal_str(tok, "{"))
+	{
+		type_t *ty = find_tag(tag);
+		if (!ty)
+		{
+			error_tok(tag, "unknown struct type");
+		}
+		return ty;
+	}
+
 	EQUAL_SKIP(ts, "{");
 	type_t *ty = calloc(1, sizeof(type_t));
 	ty->kind = TYPE_STRUCT;
@@ -743,6 +780,11 @@ static type_t *struct_decl(token_stream_t *ts)
 		}
 	}
 	ty->type_sizeof = align(offset, ty->align);
+	if (tag)
+	{
+		ty->name_token = tag;
+		scope_push_tag(scp, ty);
+	}
 	return ty;
 }
 

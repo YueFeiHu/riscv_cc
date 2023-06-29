@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
-project(rvcc VERSION 1.0)
+cmake_minimum_required(VERSION 3.0)
 
-add_compile_definitions(DEBUG)
+set(CMAKE_C_FLAGS "-std=c99")
 
 
 file(GLOB SRC_LIST "src/*.c" "thirdparty/log.c/src/*.c")
