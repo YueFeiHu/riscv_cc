@@ -8,7 +8,7 @@
 #include <ctype.h>
 #include <stdio.h>
 
-static char *keywords[] = {"return", "if", "else", "for", "while", "int", "sizeof", "char"};
+
 extern char *current_input;
 bool token_equal_str(const token_t *tok, const char *str)
 {
@@ -43,6 +43,7 @@ token_t *token_create(TokenKind kind, const char *start,const char *end)
 
 bool token_is_keyword(const token_t *tok)
 {
+	static char *keywords[] = {"return", "if", "else", "for", "while", "int", "sizeof", "char", "union"};
 	for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
 	{
 		if (token_equal_str(tok, keywords[i]))

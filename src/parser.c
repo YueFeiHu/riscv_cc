@@ -81,6 +81,7 @@ static AST_node_t *ptr_add(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *ptr_sub(AST_node_t *left, AST_node_t *right, token_t *tok);
 static AST_node_t *mul(token_stream_t *ts);
 static type_t *struct_decl(token_stream_t *ts);
+static type_t *union_decl(token_stream_t *ts);
 static AST_node_t *unary(token_stream_t *ts);
 static AST_node_t *postfix(token_stream_t *ts);
 static AST_node_t *primary(token_stream_t *ts);
@@ -112,7 +113,8 @@ static bool is_function(token_stream_t *ts, type_t **base_ty)
 static bool is_typename(token_t *tok) {
   return token_equal_str(tok, "char") || 
 				 token_equal_str(tok, "int")  ||
-				 token_equal_str(tok, "struct");
+				 token_equal_str(tok, "struct")||
+				 token_equal_str(tok, "union");
 }
 
 static var_t *find_var(token_t *tok)
@@ -363,6 +365,11 @@ type_t *declspec(token_stream_t *ts)
 	{
 		token_stream_advance(ts);
 		return struct_decl(ts);
+	}
+	if (token_equal_str(tok, "union"))
+	{
+		token_stream_advance(ts);
+		return union_decl(ts);
 	}
 	error_tok(tok, "typename expected");
 	return NULL;
@@ -741,7 +748,7 @@ static void scan_struct_members(token_stream_t *ts, type_t *ty)
 	ty->mems = head.next;
 }
 
-static type_t *struct_decl(token_stream_t *ts)
+static type_t *struct_union_decl(token_stream_t *ts)
 {
 	// struct time_t time;
 	token_t *tag = NULL;
@@ -768,6 +775,41 @@ static type_t *struct_decl(token_stream_t *ts)
 	scan_struct_members(ts, ty);
 	ty->align = 1;
 	EQUAL_SKIP(ts, "}");
+
+	if (tag)
+	{
+		ty->name_token = tag;
+		scope_push_tag(scp, ty);
+	}
+	return ty;
+}
+
+static type_t *union_decl(token_stream_t *ts)
+{
+	// struct time_t time;
+	type_t *ty = struct_union_decl(ts);
+	ty->kind = TYPE_UNION;
+	int offset = 0;
+	for (struct_member_t *mem = ty->mems; mem; mem = mem->next)
+	{
+		if (ty->align < mem->ty->align)
+		{
+			ty->align = mem->ty->align;
+		}
+		if (ty->type_sizeof < mem->ty->type_sizeof)
+		{
+			ty->align = mem->ty->type_sizeof;
+		}
+	}
+	ty->type_sizeof = align(ty->type_sizeof, ty->align);
+	return ty;
+}
+
+static type_t *struct_decl(token_stream_t *ts)
+{
+	// struct time_t time;
+	type_t *ty = struct_union_decl(ts);
+	ty->kind = TYPE_STRUCT;
 	int offset = 0;
 	for (struct_member_t *mem = ty->mems; mem; mem = mem->next)
 	{
@@ -780,11 +822,6 @@ static type_t *struct_decl(token_stream_t *ts)
 		}
 	}
 	ty->type_sizeof = align(offset, ty->align);
-	if (tag)
-	{
-		ty->name_token = tag;
-		scope_push_tag(scp, ty);
-	}
 	return ty;
 }
 
@@ -806,9 +843,9 @@ static struct_member_t *get_struct_mem(type_t *ty, token_t *tok)
 static AST_node_t *struct_ref(AST_node_t *node, token_t *tok)
 {
 	type_add2node(node);
-	if (node->data_type->kind != TYPE_STRUCT)
+	if (node->data_type->kind != TYPE_STRUCT && node->data_type->kind != TYPE_UNION)
 	{
-		error_tok(node->end_tok, "not a struct");
+		error_tok(node->end_tok, "not a struct nor a union");
 	}
 	AST_node_t *cur = new_unary(AST_NODE_MEMBER, node, tok);
 	cur->mem = get_struct_mem(node->data_type, tok);

@@ -10,6 +10,7 @@ typedef enum {
   TYPE_FUNC,
   TYPE_ARRAY,
   TYPE_STRUCT,
+  TYPE_UNION,
 } TypeKind;
 
 struct token;
