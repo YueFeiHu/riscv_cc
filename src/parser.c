@@ -798,7 +798,7 @@ static type_t *union_decl(token_stream_t *ts)
 		}
 		if (ty->type_sizeof < mem->ty->type_sizeof)
 		{
-			ty->align = mem->ty->type_sizeof;
+			ty->type_sizeof = mem->ty->type_sizeof;
 		}
 	}
 	ty->type_sizeof = align(ty->type_sizeof, ty->align);
