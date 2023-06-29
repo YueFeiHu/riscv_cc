@@ -29,9 +29,14 @@ static bool is_ident2(char c)
 
 static int read_punct(char *str)
 {
-	if (start_with(str, "==") || start_with(str, "!=") || 
-			start_with(str, "<=") || start_with(str, ">="))
-			return 2;
+	static char *key_char[] = {"==", "!=", "<=", ">=", "->"};
+	for (int i = 0; i < sizeof(key_char) / sizeof(*key_char); ++i)
+	{
+		if (start_with(str, key_char[i]))
+		{
+			return strlen(key_char[i]);
+		}
+	}
 	return ispunct(*str) ? 1 : 0;
 }
 

@@ -838,6 +838,16 @@ static AST_node_t *postfix(token_stream_t *ts)
 			tok = token_stream_get(ts);
 			continue;
 		}
+		if (token_equal_str(tok, "->"))
+		{
+			node = new_unary(AST_NODE_DEREF, node, tok);
+			token_stream_advance(ts);
+			tok = token_stream_get(ts);
+			node = struct_ref(node, tok);
+			token_stream_advance(ts);
+			tok = token_stream_get(ts);
+			continue;
+		}
 		break;
 	}
 	return node;
